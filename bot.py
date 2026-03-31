@@ -88,7 +88,7 @@ async def record_stop(ctx: discord.ApplicationContext):
     try:
         from pipeline.recorder import stop_recording
 
-        wav_files = await stop_recording(session_id)
+        await stop_recording(session_id)
     except NotImplementedError:
         await msg.edit_original_response(
             content="❌ エラーが発生しました: recorder.py が未実装です"
@@ -186,7 +186,7 @@ async def _run_batch_pipeline(msg, session_id: str, start_time: float):
         await msg.channel.send(file=discord.File(str(output_path)))
     else:
         await msg.edit_original_response(
-            content=f"❌ エラーが発生しました: 出力ファイルが見つかりません"
+            content="❌ エラーが発生しました: 出力ファイルが見つかりません"
         )
         return
 

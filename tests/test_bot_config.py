@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import yaml
-
 
 def test_config_yaml_exists():
     """config.yaml が存在すること"""
