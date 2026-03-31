@@ -1,0 +1,39 @@
+# 仮想環境
+.venv/
+
+# 大容量ファイル・モデル
+models/
+
+# 一時ファイル
+tmp/
+*.wav
+*.mp3
+
+# 出力ファイル（削除禁止だが追跡不要）
+output/
+
+# ログ
+logs/
+
+# 環境変数
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# 個人設定
+CLAUDE.local.md
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db
