@@ -1,19 +1,25 @@
 # 仮想環境
 .venv/
 
-# 大容量ファイル・モデル
-models/
+# モデルファイル（大容量）— ディレクトリ構造は保持
+models/*
+!models/.gitkeep
 
-# 一時ファイル
-tmp/
+# 一時ファイル — ディレクトリ構造は保持
+tmp/recordings/*
+!tmp/recordings/.gitkeep
+tmp/transcripts/*
+!tmp/transcripts/.gitkeep
 *.wav
 *.mp3
 
-# 出力ファイル（削除禁止だが追跡不要）
-output/
+# 出力ファイル — ディレクトリ構造は保持
+output/*
+!output/.gitkeep
 
-# ログ
-logs/
+# ログ — ディレクトリ構造は保持
+logs/*
+!logs/.gitkeep
 
 # 環境変数
 .env
