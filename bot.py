@@ -38,14 +38,26 @@ async def on_ready():
     print(f"Bot 起動完了: {bot.user}")
 
 
+def _get_voice_channel(ctx: discord.ApplicationContext):
+    """コマンド実行者が参加中の VC チャンネルを返す。未参加なら None。
+
+    ctx.author.voice はスラッシュコマンド（Interaction）経由では
+    キャッシュが不安定なため、ギルドのチャンネルを直接スキャンする。
+    """
+    for channel in ctx.guild.voice_channels:
+        if ctx.author in channel.members:
+            return channel
+    return None
+
+
 @bot.slash_command(name="record_start", description="VC に参加して録音を開始する")
 async def record_start(ctx: discord.ApplicationContext):
-    if ctx.author.voice is None:
+    voice_channel = _get_voice_channel(ctx)
+    if voice_channel is None:
         await ctx.respond("VC チャンネルに参加してから実行してください。")
         return
 
     session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-    voice_channel = ctx.author.voice.channel
     voice_client = await voice_channel.connect()
 
     _active_sessions[ctx.guild_id] = {
