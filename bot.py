@@ -23,7 +23,11 @@ if not DISCORD_TOKEN:
         "DISCORD_TOKEN が設定されていません。.env ファイルに記載するか環境変数を設定してください。"
     )
 
-bot = discord.Bot()
+intents = discord.Intents.default()
+intents.voice_states = True  # VC 参加状態の取得に必要
+intents.members = True  # display_name の取得に必要
+
+bot = discord.Bot(intents=intents)
 
 # セッション管理
 _active_sessions: dict[str, dict] = {}
