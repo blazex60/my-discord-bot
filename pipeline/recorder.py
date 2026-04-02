@@ -68,6 +68,9 @@ async def start_recording(
         if not wav_done.done():
             wav_done.set_result(paths)
 
+    # VoiceClient の WebSocket 接続が安定するまで短時間待機
+    await asyncio.sleep(0.5)
+
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
         voice_client.start_recording(WaveSink(), _finished_callback, voice_client.channel)

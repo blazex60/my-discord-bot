@@ -28,6 +28,9 @@ if not DISCORD_TOKEN:
 intents = discord.Intents.default()
 intents.voice_states = True
 intents.members = True
+intents.message_content = True
+intents.guilds = True
+
 
 # Discord が xsalsa20_poly1305* / xchacha20 を廃止し aead_aes256_gcm_rtpsize のみになった
 # py-cord 2.7.1 未実装のため自前で追加
@@ -111,27 +114,7 @@ async def record_start(ctx: discord.ApplicationContext):
 
     session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    try:
-        voice_client = await voice_channel.connect(timeout=30.0, reconnect=False, cls=_VoiceClient)
-    except Exception as e:
-        await msg.edit_original_response(
-            content=f"❌ エラーが発生しました: VC 接続失敗 ({type(e).__name__}: {e})"
-        )
-        return
-
-    if not voice_client.is_connected():
-        await voice_client.disconnect(force=True)
-        await msg.edit_original_response(
-            content="❌ VC 接続に失敗しました。UDP ポート(50000-65535)がファイアウォールでブロックされている可能性があります。"
-        )
-        return
-
-    _active_sessions[ctx.guild_id] = {
-        "session_id": session_id,
-        "voice_client": voice_client,
-        "start_time": time.time(),
-    }
-
+    # connect 前に timeout callback を準備
     async def _on_timeout():
         max_hours = config["storage"]["max_recording_hours"]
         await msg.edit_original_response(
@@ -141,17 +124,37 @@ async def record_start(ctx: discord.ApplicationContext):
             s = _active_sessions.pop(ctx.guild_id)
             await _run_batch_pipeline(msg, s["session_id"], s["start_time"])
 
-    # connect() 直後、他の await を挟まずに start_recording を呼ぶ
-    # （await を挟むと event loop が voice WebSocket 切断を処理してしまう）
     try:
+        # VoiceClient として接続
+        voice_client = await voice_channel.connect(timeout=30.0, reconnect=False, cls=_VoiceClient)
+
+        # 接続成功を確認
+        if not voice_client.is_connected():
+            await voice_client.disconnect(force=True)
+            await msg.edit_original_response(
+                content="❌ VC 接続に失敗しました。UDP ポート(50000-65535)がファイアウォールでブロックされている可能性があります。"
+            )
+            return
+
+        # セッション登録
+        _active_sessions[ctx.guild_id] = {
+            "session_id": session_id,
+            "voice_client": voice_client,
+            "start_time": time.time(),
+        }
+
+        # connect() 直後、他の await を挟まずに start_recording を呼ぶ
         from pipeline.recorder import start_recording
 
         await start_recording(voice_client, session_id, on_timeout=_on_timeout)
+
     except Exception as e:
         await msg.edit_original_response(
-            content=f"❌ エラーが発生しました: 録音開始失敗 ({e})\n"
+            content=f"❌ エラーが発生しました: VC 接続失敗 ({type(e).__name__}: {e})\n"
             f"WAV ファイルは保持されています。`/transcribe_only` で再開できます。"
         )
+        if ctx.guild_id in _active_sessions:
+            del _active_sessions[ctx.guild_id]
         return
 
     await msg.edit_original_response(content="🔴 録音中...")
