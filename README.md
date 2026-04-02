@@ -1,5 +1,7 @@
 # Discord VC 議事録自動作成ボット
 
+> ⚠️ **重要な制限事項**: Discord が導入した DAVE (End-to-End Encryption) プロトコルにより、**現在 Bot 経由での音声録音は動作しません**。詳細は [DAVE_LIMITATION.md](./DAVE_LIMITATION.md) を参照してください。py-cord の [Issue #3139](https://github.com/Pycord-Development/pycord/issues/3139) で進捗を追跡できます。
+
 Discord VC の音声をローカル Linux 環境で完全オフライン処理し、Markdown 形式の議事録を自動生成する Bot。
 外部 AI API は一切使用しない。夜間バッチ処理を前提とし、速度より**安定性・精度を最優先**とする。
 

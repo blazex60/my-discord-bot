@@ -19,6 +19,21 @@ logger = logging.getLogger(__name__)
 with open("config.yaml") as f:
     config = yaml.safe_load(f)
 
+
+# py-cord dev版で __sink_listeners__ 属性が必要なため、カスタムWaveSinkを作成
+class _CustomWaveSink(WaveSink):
+    """py-cord dev版の互換性のため、__sink_listeners__とwalk_childrenを持つWaveSink"""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # __sink_listeners__ 属性を初期化（name manglingで _CustomWaveSink__sink_listeners__ になる）
+        self.__sink_listeners__ = {}
+
+    def walk_children(self):
+        """子要素を返すイテレータ（WaveSinkには子要素がないので空を返す）"""
+        return iter([])
+
+
 # session_id → {"voice_client": ..., "wav_done": Future, "timeout_task": Task | None}
 _sessions: dict[str, dict] = {}
 
@@ -54,26 +69,53 @@ async def start_recording(
     loop = asyncio.get_event_loop()
     wav_done: asyncio.Future[list[str]] = loop.create_future()
 
-    async def _finished_callback(sink: WaveSink, channel) -> None:
-        """録音終了時に各ユーザーの音声を WAV ファイルへ保存する"""
+    async def _finished_callback(sink: _CustomWaveSink, *args) -> None:
+        """録音終了時に各ユーザーの音声を WAV ファイルへ保存する
+
+        Args:
+            sink: _CustomWaveSink オブジェクト（録音データを含む）
+            *args: その他の引数（py-cord dev版では channel などが渡される可能性）
+        """
         paths: list[str] = []
-        for user_id, audio in sink.audio_data.items():
-            filename = f"{session_id}_{user_id}.wav"
-            filepath = recordings_dir / filename
-            with open(filepath, "wb") as f:
-                f.write(audio.file.getvalue())
-            logger.info("WAV 保存: %s", filepath)
-            paths.append(str(filepath))
+        try:
+            for user_id, audio in sink.audio_data.items():
+                filename = f"{session_id}_{user_id}.wav"
+                filepath = recordings_dir / filename
+                with open(filepath, "wb") as f:
+                    f.write(audio.file.getvalue())
+                logger.info("WAV 保存: %s", filepath)
+                paths.append(str(filepath))
+        except Exception as e:
+            logger.exception("WAV保存中にエラーが発生: %s", e)
+            # エラーが発生してもwav_doneを解決する（空リストを返す）
+        finally:
+            if not wav_done.done():
+                wav_done.set_result(paths)
 
-        if not wav_done.done():
-            wav_done.set_result(paths)
+    # VoiceClient の WebSocket 接続が安定するまで待機（最大5秒、exponential backoff）
+    max_wait_seconds = 5.0
+    check_interval = 0.1
+    elapsed = 0.0
+    backoff = 1.0
 
-    # VoiceClient の WebSocket 接続が安定するまで短時間待機
-    await asyncio.sleep(0.5)
+    while elapsed < max_wait_seconds:
+        # is_connected() を確認
+        if voice_client.is_connected():
+            logger.info("WebSocket ready after %.2fs", elapsed)
+            break
+        await asyncio.sleep(check_interval * backoff)
+        elapsed += check_interval * backoff
+        backoff = min(backoff * 1.5, 3.0)  # exponential backoff（最大3倍）
+    else:
+        logger.warning(
+            "WebSocket did not become ready within %s seconds - proceeding anyway",
+            max_wait_seconds,
+        )
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
-        voice_client.start_recording(WaveSink(), _finished_callback, voice_client.channel)
+        # py-cord dev版のAPIに合わせて修正（sync_startは非推奨なので削除）
+        voice_client.start_recording(_CustomWaveSink(), _finished_callback)
     logger.info("録音開始: session_id=%s", session_id)
 
     # 最大録音時間タイマー
