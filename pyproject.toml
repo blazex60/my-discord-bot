@@ -5,7 +5,9 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "discord-py[voice]>=2.7.1",
     "py-cord>=2.6",
+    "pycord>=0.1.1",
     "python-dotenv>=1.2.2",
     "pyyaml>=6.0.3",
 ]

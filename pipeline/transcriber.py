@@ -3,16 +3,15 @@
 使い方: python pipeline/transcriber.py <session_id>
 
 処理フロー:
-1. tmp/recordings/{session_id}_*.wav を収集
+1. tmp/recordings/ からメディアファイル（WAV, MP4, MKV等）を収集
 2. Whisper large-v3 (device="cuda") でロード
 3. OOM 発生時は medium へフォールバックして再試行
-4. セグメントのタイムスタンプ + ユーザー名でトランスクリプトを生成
+4. タイムスタンプ付きのトランスクリプトを生成
 5. tmp/transcripts/{session_id}_transcript.txt へ保存
 6. del model → gc.collect() → cuda.empty_cache() でアンロード
 """
 
 import gc
-import json
 import logging
 import sys
 from datetime import datetime, timedelta
@@ -31,6 +30,16 @@ with open("config.yaml") as f:
 
 ASR_CONFIG = config["asr"]
 STORAGE = config["storage"]
+
+SUPPORTED_EXTENSIONS = [".wav", ".mp4", ".mkv", ".webm", ".m4a", ".mp3", ".ogg", ".flac"]
+
+
+def _find_media_files(recordings_dir: Path) -> list[Path]:
+    """録音・録画ファイルをすべて検索して返す。"""
+    files = []
+    for ext in SUPPORTED_EXTENSIONS:
+        files.extend(recordings_dir.glob(f"*{ext}"))
+    return sorted(files)
 
 
 def _load_whisper(model_name: str):
@@ -57,59 +66,48 @@ def _unload_whisper(model) -> None:
         pass
 
 
-def _transcribe_file(
-    model, wav_path: Path, display_name: str, session_start: datetime
-) -> list[str]:
-    """WAV ファイルを文字起こしし、タイムスタンプ付きの行リストを返す。
+def _transcribe_file(model, media_path: Path, label: str, session_start: datetime) -> list[str]:
+    """メディアファイルを文字起こしし、タイムスタンプ付きの行リストを返す。
 
-    出力形式: [YYYY-MM-DD HH:MM:SS] ユーザー名: 発言内容
+    出力形式: [YYYY-MM-DD HH:MM:SS] {label}: 発言内容
 
     Args:
         model: ロード済み Whisper モデル
-        wav_path: 対象の WAV ファイル
-        display_name: Discord の表示名
-        session_start: セッション開始日時（session_id から算出）
+        media_path: 対象ファイル（WAV, MP4, MKV等）
+        label: トランスクリプト内の話者ラベル（ファイル名ベース）
+        session_start: セッション開始日時（タイムスタンプ算出に使用）
 
     Returns:
         トランスクリプト行のリスト
     """
-    logger.info("文字起こし中: %s (%s)", wav_path.name, display_name)
-    result = model.transcribe(str(wav_path), language="ja", verbose=False)
+    logger.info("文字起こし中: %s", media_path.name)
+    result = model.transcribe(str(media_path), language="ja", verbose=False)
 
     lines: list[str] = []
     for segment in result["segments"]:
-        # セグメントの相対タイムスタンプを絶対日時へ変換
         abs_time = session_start + timedelta(seconds=segment["start"])
         timestamp = abs_time.strftime("%Y-%m-%d %H:%M:%S")
         text = segment["text"].strip()
         if text:
-            lines.append(f"[{timestamp}] {display_name}: {text}")
+            lines.append(f"[{timestamp}] {label}: {text}")
 
     logger.info("  → %d セグメント", len(lines))
     return lines
 
 
 def main(session_id: str) -> None:
-    """セッション全体の WAV ファイルを文字起こしして transcript ファイルを生成する。"""
+    """セッションのメディアファイルを文字起こしして transcript ファイルを生成する。"""
     tmp_dir = Path(STORAGE["tmp_dir"])
     recordings_dir = tmp_dir / "recordings"
     transcripts_dir = tmp_dir / "transcripts"
     transcripts_dir.mkdir(parents=True, exist_ok=True)
 
-    # WAV ファイルを収集
-    wav_files = sorted(recordings_dir.glob(f"{session_id}_*.wav"))
-    if not wav_files:
-        logger.error("WAV ファイルが見つかりません: session_id=%s", session_id)
+    media_files = _find_media_files(recordings_dir)
+    if not media_files:
+        logger.error("メディアファイルが見つかりません: %s", recordings_dir)
         sys.exit(1)
 
-    logger.info("%d 個の WAV ファイルを処理します。", len(wav_files))
-
-    # ユーザー名メタデータをロード（なければ user_id をそのまま使用）
-    meta_path = transcripts_dir / f"{session_id}_meta.json"
-    member_names: dict[str, str] = {}
-    if meta_path.exists():
-        with open(meta_path, encoding="utf-8") as f:
-            member_names = json.load(f)
+    logger.info("%d 個のメディアファイルを処理します。", len(media_files))
 
     # セッション開始日時を session_id から算出（YYYYMMDD_HHMMSS）
     try:
@@ -139,18 +137,15 @@ def main(session_id: str) -> None:
 
     logger.info("使用モデル: whisper-%s", used_model)
 
-    # 全 WAV ファイルを順次処理
+    # 全メディアファイルを順次処理
     all_lines: list[tuple[str, str]] = []  # (timestamp_str, line)
 
-    for i, wav_path in enumerate(wav_files, 1):
-        # ファイル名から user_id を抽出: {session_id}_{user_id}.wav
-        user_id = wav_path.stem.removeprefix(f"{session_id}_")
-        display_name = member_names.get(user_id, user_id)
-
-        logger.info("[%d/%d] %s", i, len(wav_files), wav_path.name)
-        lines = _transcribe_file(model, wav_path, display_name, session_start)
+    for i, media_path in enumerate(media_files, 1):
+        # ファイル名をラベルとして使用（拡張子なし）
+        label = media_path.stem
+        logger.info("[%d/%d] %s", i, len(media_files), media_path.name)
+        lines = _transcribe_file(model, media_path, label, session_start)
         for line in lines:
-            # タイムスタンプ部分を抽出してソート用キーとして保持
             ts = line[1:20]  # "[YYYY-MM-DD HH:MM:SS]" → "YYYY-MM-DD HH:MM:SS"
             all_lines.append((ts, line))
 

@@ -19,7 +19,15 @@ storage:
   output_dir: "output/"
   tmp_dir: "tmp/"
   warn_threshold_gb: 20
-  max_recording_hours: 3
+
+obs:
+  # OBS が出力したファイルを tmp/recordings/ に配置してください
+  # 対応形式: .wav .mp4 .mkv .webm .m4a .mp3 .ogg .flac
+
+chat:
+  # チャットログ収集: /record_start を実行したチャンネルのメッセージを自動収集
+  # ボットのメッセージと空メッセージは除外されます
+  enabled: true
 
 greenboost:
   enabled: false
