@@ -5,9 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "cryptography>=46.0.6",
-    "py-cord[voice]==2.7.1",
-    "pynacl>=1.6.2",
+    "py-cord>=2.6",
     "python-dotenv>=1.2.2",
     "pyyaml>=6.0.3",
 ]

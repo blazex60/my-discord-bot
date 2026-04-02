@@ -1,4 +1,4 @@
-"""Discord VC 議事録自動作成ボット — メインエントリーポイント"""
+"""Discord VC 議事録自動作成ボット — OBSローカル録音版"""
 
 import os
 import subprocess
@@ -7,18 +7,14 @@ from datetime import datetime
 from pathlib import Path
 
 import discord
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from discord.voice_client import VoiceClient
 import yaml
 from dotenv import load_dotenv
 
-load_dotenv()  # .env ファイルから環境変数を読み込む
+load_dotenv()
 
-# 設定読み込み
 with open("config.yaml") as f:
     config = yaml.safe_load(f)
 
-# DISCORD_TOKEN は .env または環境変数から取得
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 if not DISCORD_TOKEN:
     raise RuntimeError(
@@ -26,46 +22,11 @@ if not DISCORD_TOKEN:
     )
 
 intents = discord.Intents.default()
-intents.voice_states = True
-intents.members = True
-intents.message_content = True
-intents.guilds = True
-
-
-# Discord が xsalsa20_poly1305* / xchacha20 を廃止し aead_aes256_gcm_rtpsize のみになった
-# py-cord 2.7.1 未実装のため自前で追加
-class _VoiceClient(VoiceClient):
-    supported_modes = (
-        "aead_aes256_gcm_rtpsize",
-        "aead_xchacha20_poly1305_rtpsize",
-        "xsalsa20_poly1305_lite",
-        "xsalsa20_poly1305_suffix",
-        "xsalsa20_poly1305",
-    )
-
-    def __init__(self, client, channel):
-        super().__init__(client, channel)
-        self._gcm_nonce: int = 0
-
-    def _encrypt_aead_aes256_gcm_rtpsize(self, header: bytes, data) -> bytes:
-        nonce_bytes = self._gcm_nonce.to_bytes(4, "big")
-        self._gcm_nonce = (self._gcm_nonce + 1) & 0xFFFFFFFF
-        nonce_12 = b"\x00" * 8 + nonce_bytes
-        encrypted = AESGCM(bytes(self.secret_key)).encrypt(nonce_12, bytes(data), header)
-        return header + encrypted + nonce_bytes
-
-    def _decrypt_aead_aes256_gcm_rtpsize(self, header: bytes, data) -> bytes:
-        nonce_12 = b"\x00" * 8 + data[-4:]
-        return AESGCM(bytes(self.secret_key)).decrypt(nonce_12, data[:-4], header)
-
 
 bot = discord.Bot(intents=intents)
 
-# セッション管理
-_active_sessions: dict[str, dict] = {}
-
-# VC 状態の自前トラッキング: guild_id -> {user_id -> VoiceChannel}
-_vc_tracker: dict[int, dict[int, discord.VoiceChannel]] = {}
+# セッション管理: guild_id -> {session_id, start_time}
+_active_sessions: dict[int, dict] = {}
 
 
 @bot.event
@@ -73,143 +34,66 @@ async def on_ready():
     print(f"Bot 起動完了: {bot.user}")
 
 
-@bot.event
-async def on_guild_available(guild: discord.Guild):
-    _vc_tracker[guild.id] = {}
-    for channel in guild.voice_channels:
-        for member in channel.members:
-            _vc_tracker[guild.id][member.id] = channel
-
-
-@bot.event
-async def on_voice_state_update(
-    member: discord.Member,
-    before: discord.VoiceState,
-    after: discord.VoiceState,
-):
-    guild_id = member.guild.id
-    if guild_id not in _vc_tracker:
-        _vc_tracker[guild_id] = {}
-    if after.channel:
-        _vc_tracker[guild_id][member.id] = after.channel
-    else:
-        _vc_tracker[guild_id].pop(member.id, None)
-
-
-def _get_voice_channel(ctx: discord.ApplicationContext):
-    """コマンド実行者が参加中の VC チャンネルを返す。未参加なら None。"""
-    guild_map = _vc_tracker.get(ctx.guild_id, {})
-    return guild_map.get(ctx.author.id)
-
-
-@bot.slash_command(name="record_start", description="VC に参加して録音を開始する")
+@bot.slash_command(name="record_start", description="録音セッションを開始する（OBS で録音を開始してください）")
 async def record_start(ctx: discord.ApplicationContext):
-    voice_channel = _get_voice_channel(ctx)
-    if voice_channel is None:
-        await ctx.respond("VC チャンネルに参加してから実行してください。")
+    if ctx.guild_id in _active_sessions:
+        await ctx.respond("すでに録音セッションが進行中です。`/record_stop` で停止してください。")
         return
-
-    # Discord の3秒タイムアウト前に必ず応答する
-    msg = await ctx.respond("⏳ VC に接続中...")
 
     session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+    _active_sessions[ctx.guild_id] = {
+        "session_id": session_id,
+        "start_time": time.time(),
+    }
 
-    # connect 前に timeout callback を準備
-    async def _on_timeout():
-        max_hours = config["storage"]["max_recording_hours"]
-        await msg.edit_original_response(
-            content=f"⚠️ 最大録音時間 ({max_hours} 時間) に達したため自動停止しました。バッチ処理を開始します..."
-        )
-        if ctx.guild_id in _active_sessions:
-            s = _active_sessions.pop(ctx.guild_id)
-            await _run_batch_pipeline(msg, s["session_id"], s["start_time"])
+    recordings_dir = Path(config["storage"]["tmp_dir"]) / "recordings"
+    recordings_dir.mkdir(parents=True, exist_ok=True)
 
-    try:
-        # VoiceClient として接続
-        voice_client = await voice_channel.connect(timeout=30.0, reconnect=False, cls=_VoiceClient)
-
-        # 接続成功を確認
-        if not voice_client.is_connected():
-            await voice_client.disconnect(force=True)
-            await msg.edit_original_response(
-                content="❌ VC 接続に失敗しました。UDP ポート(50000-65535)がファイアウォールでブロックされている可能性があります。"
-            )
-            return
-
-        # セッション登録
-        _active_sessions[ctx.guild_id] = {
-            "session_id": session_id,
-            "voice_client": voice_client,
-            "start_time": time.time(),
-        }
-
-        # connect() 直後、他の await を挟まずに start_recording を呼ぶ
-        from pipeline.recorder import start_recording
-
-        await start_recording(voice_client, session_id, on_timeout=_on_timeout)
-
-    except Exception as e:
-        await msg.edit_original_response(
-            content=f"❌ エラーが発生しました: VC 接続失敗 ({type(e).__name__}: {e})\n"
-            f"WAV ファイルは保持されています。`/transcribe_only` で再開できます。"
-        )
-        if ctx.guild_id in _active_sessions:
-            del _active_sessions[ctx.guild_id]
-        return
-
-    await msg.edit_original_response(content="🔴 録音中...")
+    await ctx.respond(
+        f"🔴 録音セッション開始 (`{session_id}`)\n"
+        f"OBS で録音を開始し、完了したら `/record_stop` を実行してください。\n"
+        f"録音ファイルは `{recordings_dir}/` に保存してください。"
+    )
 
 
 @bot.slash_command(name="record_stop", description="録音を停止してバッチ処理を開始する")
 async def record_stop(ctx: discord.ApplicationContext):
-    session = _active_sessions.get(ctx.guild_id)
+    session = _active_sessions.pop(ctx.guild_id, None)
     if session is None:
         await ctx.respond("録音中のセッションがありません。")
         return
 
     session_id = session["session_id"]
-    voice_client = session["voice_client"]
     start_time = session["start_time"]
 
+    recordings_dir = Path(config["storage"]["tmp_dir"]) / "recordings"
+    wav_files = sorted(recordings_dir.glob("*.wav"))
+    if not wav_files:
+        await ctx.respond(
+            f"❌ `{recordings_dir}/` に WAV ファイルが見つかりません。\n"
+            "OBS の出力先を確認してください。"
+        )
+        return
+
     msg = await ctx.respond("⏳ バッチ処理を開始しました...")
-
-    try:
-        from pipeline.recorder import stop_recording
-
-        await stop_recording(session_id)
-    except NotImplementedError:
-        await msg.edit_original_response(
-            content="❌ エラーが発生しました: recorder.py が未実装です"
-        )
-        return
-    except Exception as e:
-        await msg.edit_original_response(
-            content=f"❌ エラーが発生しました: 録音停止失敗 ({e})\n"
-            f"WAV ファイルは保持されています。`/transcribe_only` で再開できます。"
-        )
-        return
-    finally:
-        if voice_client.is_connected():
-            await voice_client.disconnect()
-        del _active_sessions[ctx.guild_id]
-
     await _run_batch_pipeline(msg, session_id, start_time)
 
 
 @bot.slash_command(
     name="transcribe_only",
-    description="既存の WAV ファイルから ASR・要約のみ再実行する（録音失敗時の再開用）",
+    description="既存の WAV ファイルから ASR・要約のみ再実行する",
 )
 async def transcribe_only(ctx: discord.ApplicationContext):
-    # tmp/recordings/ から最新セッションの WAV を探す
     recordings_dir = Path(config["storage"]["tmp_dir"]) / "recordings"
     wav_files = sorted(recordings_dir.glob("*.wav"))
     if not wav_files:
         await ctx.respond("再処理する WAV ファイルが見つかりません。")
         return
 
-    # 最新セッション ID を推定
-    session_id = wav_files[-1].stem.split("_")[0] + "_" + wav_files[-1].stem.split("_")[1]
+    # ファイル名の先頭 2 フィールドをセッション ID として使用
+    stem = wav_files[-1].stem
+    parts = stem.split("_")
+    session_id = f"{parts[0]}_{parts[1]}" if len(parts) >= 2 else stem
 
     msg = await ctx.respond("⏳ バッチ処理を開始しました...")
     await _run_batch_pipeline(msg, session_id, time.time())
@@ -219,7 +103,7 @@ async def _run_batch_pipeline(msg, session_id: str, start_time: float):
     """ASR → LLM の直列バッチ処理を実行し、進捗を Discord メッセージで更新する"""
     tmp_dir = Path(config["storage"]["tmp_dir"])
     output_dir = Path(config["storage"]["output_dir"])
-    wav_files = sorted((tmp_dir / "recordings").glob(f"{session_id}*.wav"))
+    wav_files = sorted((tmp_dir / "recordings").glob("*.wav"))
     total_wavs = max(len(wav_files), 1)
 
     # フェーズ2: ASR
@@ -251,7 +135,6 @@ async def _run_batch_pipeline(msg, session_id: str, start_time: float):
     if result.returncode != 0:
         partial = tmp_dir / f"partial_{session_id}.txt"
         if result.returncode == 2 and partial.exists():
-            # 終了コード 2 = OOM による中断。生成済みチャンク要約を送信
             await msg.edit_original_response(
                 content="❌ エラーが発生しました: VRAM 不足により LLM 処理を中断しました。"
                 "生成済みのチャンク要約を送信します。"
@@ -279,7 +162,7 @@ async def _run_batch_pipeline(msg, session_id: str, start_time: float):
         return
 
     # tmp/ 以下の一時ファイルを削除
-    for f in (tmp_dir / "recordings").glob(f"{session_id}*.wav"):
+    for f in (tmp_dir / "recordings").glob("*.wav"):
         f.unlink()
     for f in (tmp_dir / "transcripts").glob(f"{session_id}*"):
         f.unlink()
