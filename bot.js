@@ -335,7 +335,7 @@ async function runBatchPipeline(interaction, sessionId, startTime) {
 // イベントハンドラ
 // ============================================================
 
-client.once("ready", async () => {
+client.once("clientReady", async () => {
   console.log(`Bot 起動完了: ${client.user.tag}`);
 
   // スラッシュコマンドをグローバル登録
@@ -370,11 +370,9 @@ client.on("interactionCreate", async (interaction) => {
 
     await interaction.deferReply();
 
-    const sessionId = new Date()
-      .toISOString()
-      .replace(/[-:T]/g, "")
-      .slice(0, 15)
-      .replace(/(\d{8})(\d{6})/, "$1_$2");
+    const _now = new Date();
+    const _pad = (n) => String(n).padStart(2, "0");
+    const sessionId = `${_now.getFullYear()}${_pad(_now.getMonth() + 1)}${_pad(_now.getDate())}_${_pad(_now.getHours())}${_pad(_now.getMinutes())}${_pad(_now.getSeconds())}`;
 
     saveMetadata(voiceChannel, sessionId);
 
