@@ -7,6 +7,8 @@ from datetime import datetime
 from pathlib import Path
 
 import discord
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from discord.voice_client import VoiceClient
 import yaml
 from dotenv import load_dotenv
 
@@ -24,13 +26,43 @@ if not DISCORD_TOKEN:
     )
 
 intents = discord.Intents.default()
-intents.voice_states = True  # VC 参加状態の取得に必要
-intents.members = True  # display_name の取得に必要
+intents.voice_states = True
+intents.members = True
+
+# Discord が xsalsa20_poly1305* / xchacha20 を廃止し aead_aes256_gcm_rtpsize のみになった
+# py-cord 2.7.1 未実装のため自前で追加
+class _VoiceClient(VoiceClient):
+    supported_modes = (
+        "aead_aes256_gcm_rtpsize",
+        "aead_xchacha20_poly1305_rtpsize",
+        "xsalsa20_poly1305_lite",
+        "xsalsa20_poly1305_suffix",
+        "xsalsa20_poly1305",
+    )
+
+    def __init__(self, client, channel):
+        super().__init__(client, channel)
+        self._gcm_nonce: int = 0
+
+    def _encrypt_aead_aes256_gcm_rtpsize(self, header: bytes, data) -> bytes:
+        nonce_bytes = self._gcm_nonce.to_bytes(4, "big")
+        self._gcm_nonce = (self._gcm_nonce + 1) & 0xFFFFFFFF
+        nonce_12 = b"\x00" * 8 + nonce_bytes
+        encrypted = AESGCM(bytes(self.secret_key)).encrypt(nonce_12, bytes(data), header)
+        return header + encrypted + nonce_bytes
+
+    def _decrypt_aead_aes256_gcm_rtpsize(self, header: bytes, data) -> bytes:
+        nonce_12 = b"\x00" * 8 + data[-4:]
+        return AESGCM(bytes(self.secret_key)).decrypt(nonce_12, data[:-4], header)
+
 
 bot = discord.Bot(intents=intents)
 
 # セッション管理
 _active_sessions: dict[str, dict] = {}
+
+# VC 状態の自前トラッキング: guild_id -> {user_id -> VoiceChannel}
+_vc_tracker: dict[int, dict[int, discord.VoiceChannel]] = {}
 
 
 @bot.event
@@ -38,16 +70,33 @@ async def on_ready():
     print(f"Bot 起動完了: {bot.user}")
 
 
-def _get_voice_channel(ctx: discord.ApplicationContext):
-    """コマンド実行者が参加中の VC チャンネルを返す。未参加なら None。
+@bot.event
+async def on_guild_available(guild: discord.Guild):
+    _vc_tracker[guild.id] = {}
+    for channel in guild.voice_channels:
+        for member in channel.members:
+            _vc_tracker[guild.id][member.id] = channel
 
-    ctx.author.voice はスラッシュコマンド（Interaction）経由では
-    キャッシュが不安定なため、ギルドのチャンネルを直接スキャンする。
-    """
-    for channel in ctx.guild.voice_channels:
-        if ctx.author in channel.members:
-            return channel
-    return None
+
+@bot.event
+async def on_voice_state_update(
+    member: discord.Member,
+    before: discord.VoiceState,
+    after: discord.VoiceState,
+):
+    guild_id = member.guild.id
+    if guild_id not in _vc_tracker:
+        _vc_tracker[guild_id] = {}
+    if after.channel:
+        _vc_tracker[guild_id][member.id] = after.channel
+    else:
+        _vc_tracker[guild_id].pop(member.id, None)
+
+
+def _get_voice_channel(ctx: discord.ApplicationContext):
+    """コマンド実行者が参加中の VC チャンネルを返す。未参加なら None。"""
+    guild_map = _vc_tracker.get(ctx.guild_id, {})
+    return guild_map.get(ctx.author.id)
 
 
 @bot.slash_command(name="record_start", description="VC に参加して録音を開始する")
@@ -57,16 +106,31 @@ async def record_start(ctx: discord.ApplicationContext):
         await ctx.respond("VC チャンネルに参加してから実行してください。")
         return
 
+    # Discord の3秒タイムアウト前に必ず応答する
+    msg = await ctx.respond("⏳ VC に接続中...")
+
     session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-    voice_client = await voice_channel.connect()
+
+    try:
+        voice_client = await voice_channel.connect(timeout=30.0, reconnect=False, cls=_VoiceClient)
+    except Exception as e:
+        await msg.edit_original_response(
+            content=f"❌ エラーが発生しました: VC 接続失敗 ({type(e).__name__}: {e})"
+        )
+        return
+
+    if not voice_client.is_connected():
+        await voice_client.disconnect(force=True)
+        await msg.edit_original_response(
+            content="❌ VC 接続に失敗しました。UDP ポート(50000-65535)がファイアウォールでブロックされている可能性があります。"
+        )
+        return
 
     _active_sessions[ctx.guild_id] = {
         "session_id": session_id,
         "voice_client": voice_client,
         "start_time": time.time(),
     }
-
-    msg = await ctx.respond("🔴 録音中...")
 
     async def _on_timeout():
         max_hours = config["storage"]["max_recording_hours"]
@@ -77,15 +141,20 @@ async def record_start(ctx: discord.ApplicationContext):
             s = _active_sessions.pop(ctx.guild_id)
             await _run_batch_pipeline(msg, s["session_id"], s["start_time"])
 
+    # connect() 直後、他の await を挟まずに start_recording を呼ぶ
+    # （await を挟むと event loop が voice WebSocket 切断を処理してしまう）
     try:
         from pipeline.recorder import start_recording
 
-        await start_recording(voice_client, session_id, on_timeout=_on_timeout())
+        await start_recording(voice_client, session_id, on_timeout=_on_timeout)
     except Exception as e:
         await msg.edit_original_response(
             content=f"❌ エラーが発生しました: 録音開始失敗 ({e})\n"
             f"WAV ファイルは保持されています。`/transcribe_only` で再開できます。"
         )
+        return
+
+    await msg.edit_original_response(content="🔴 録音中...")
 
 
 @bot.slash_command(name="record_stop", description="録音を停止してバッチ処理を開始する")
