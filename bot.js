@@ -139,6 +139,7 @@ function startRecording(guildId, sessionId, voiceChannel, textChannelId) {
     adapterCreator: voiceChannel.guild.voiceAdapterCreator,
     selfDeaf: false,
     selfMute: true,
+    selfVideo: false,
   });
 
   // perUserBuffers: userId → Buffer[]
@@ -160,6 +161,15 @@ function startRecording(guildId, sessionId, voiceChannel, textChannelId) {
       rate: 48000,
       channels: 2,
       frameSize: 960,
+    });
+
+    // エラーハンドリング: 暗号化関連エラーを無視して録音を継続
+    audioStream.on("error", (err) => {
+      console.warn(`Audio stream error for user ${userId}:`, err.message);
+    });
+
+    decoder.on("error", (err) => {
+      console.warn(`Decoder error for user ${userId}:`, err.message);
     });
 
     audioStream.pipe(decoder).on("data", (chunk) => {
