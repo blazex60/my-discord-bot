@@ -4,11 +4,12 @@
 
 処理フロー:
 1. tmp/transcripts/{session_id}_transcript.txt を読み込む
-2. Llama クラスで GGUF モデルをロード
-3. Step 1: 各チャンクの要点を生成
-4. Step 2: 全チャンク要約を統合して Markdown を生成
-5. output/minutes_{session_id}.md へ保存
-6. del llm → gc.collect() → cuda.empty_cache() でアンロード
+2. tmp/transcripts/{session_id}_chat.txt を読み込む（存在する場合）
+3. Llama クラスで GGUF モデルをロード
+4. Step 1: 各チャンクの要点を生成
+5. Step 2: 全チャンク要約 + チャットログを統合して Markdown を生成
+6. output/minutes_{session_id}.md へ保存
+7. del llm → gc.collect() → cuda.empty_cache() でアンロード
 
 エラー時:
 - OOM: 生成済みチャンク要約を tmp/partial_{session_id}.txt に保存して終了
@@ -35,16 +36,42 @@ STORAGE = config["storage"]
 
 # プロンプトテンプレート
 _CHUNK_SUMMARY_PROMPT = """\
-以下は会議の一部の発言記録です。この部分の要点を箇条書きで日本語にまとめてください。
+以下は会議の一部の音声文字起こしです。この部分の要点を箇条書きで日本語にまとめてください。
 決定事項やToDo（誰が何をするか）があれば特に明記してください。
 
---- 発言記録 ---
+--- 音声文字起こし ---
 {transcript}
 --- ここまで ---
 
 要点:"""
 
-_FINAL_SUMMARY_PROMPT = """\
+_FINAL_SUMMARY_PROMPT_WITH_CHAT = """\
+以下は会議の音声文字起こしの要点まとめと、会議中のチャットログです。
+これらを統合して、以下の構成でMarkdown形式の議事録を日本語で作成してください。
+
+## 会議の概要
+（会議で話し合われた主なテーマと結果を2〜4文で記述）
+
+## 決定事項
+（会議で決まったことを箇条書きで記述。なければ「特になし」）
+
+## ToDo
+（誰が何をするかを箇条書きで記述。なければ「特になし」）
+
+## チャットメモ
+（チャットログの中で議事録に残すべき重要な内容を箇条書きで記述。なければ「特になし」）
+
+--- 音声文字起こしの要点 ---
+{chunk_summaries}
+--- ここまで ---
+
+--- チャットログ ---
+{chat_log}
+--- ここまで ---
+
+議事録:"""
+
+_FINAL_SUMMARY_PROMPT_NO_CHAT = """\
 以下は会議全体の各パートの要点まとめです。
 これらを統合して、以下の構成でMarkdown形式の議事録を日本語で作成してください。
 
@@ -121,16 +148,24 @@ def _summarize_chunk(llm, chunk: str, index: int, total: int) -> str:
     return _generate(llm, prompt)
 
 
-def _generate_final_minutes(llm, chunk_summaries: list[str]) -> str:
-    """全チャンク要約を統合して最終議事録 Markdown を生成する（Step 2）。"""
+def _generate_final_minutes(llm, chunk_summaries: list[str], chat_log: str | None) -> str:
+    """全チャンク要約（+ チャットログ）を統合して最終議事録 Markdown を生成する（Step 2）。"""
     logger.info("統合要約を生成中...")
     combined = "\n\n".join(f"【パート {i + 1}】\n{s}" for i, s in enumerate(chunk_summaries))
-    prompt = _FINAL_SUMMARY_PROMPT.format(chunk_summaries=combined)
+
+    if chat_log:
+        prompt = _FINAL_SUMMARY_PROMPT_WITH_CHAT.format(
+            chunk_summaries=combined,
+            chat_log=chat_log,
+        )
+    else:
+        prompt = _FINAL_SUMMARY_PROMPT_NO_CHAT.format(chunk_summaries=combined)
+
     return _generate(llm, prompt)
 
 
 def main(session_id: str) -> None:
-    """セッションのトランスクリプトを2段階要約して議事録 Markdown を生成する。"""
+    """セッションのトランスクリプトとチャットログを2段階要約して議事録 Markdown を生成する。"""
     tmp_dir = Path(STORAGE["tmp_dir"])
     output_dir = Path(STORAGE["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -146,6 +181,16 @@ def main(session_id: str) -> None:
         sys.exit(1)
 
     logger.info("トランスクリプト読み込み完了: %d 文字", len(transcript))
+
+    # チャットログ読み込み（存在する場合のみ）
+    chat_log: str | None = None
+    chat_path = tmp_dir / "transcripts" / f"{session_id}_chat.txt"
+    if chat_path.exists():
+        chat_log = chat_path.read_text(encoding="utf-8").strip() or None
+        if chat_log:
+            logger.info("チャットログ読み込み完了: %d 文字", len(chat_log))
+    else:
+        logger.info("チャットログなし（音声のみで議事録を生成します）")
 
     # LLM ロード
     try:
@@ -182,7 +227,7 @@ def main(session_id: str) -> None:
 
     # Step 2: 統合要約 → 最終議事録 Markdown
     try:
-        minutes_md = _generate_final_minutes(llm, chunk_summaries)
+        minutes_md = _generate_final_minutes(llm, chunk_summaries, chat_log)
     except Exception as e:
         import torch
 
