@@ -100,10 +100,22 @@ def main(session_id: str) -> None:
     transcripts_dir = tmp_dir / "transcripts"
     transcripts_dir.mkdir(parents=True, exist_ok=True)
 
-    # WAV ファイルを収集
-    wav_files = sorted(recordings_dir.glob(f"{session_id}_*.wav"))
+    # WAV ファイルを収集（異常なファイル名にも対応）
+    # パターン: {session_id}で始まる全ての.wavファイル（_が.に化けた場合も検出）
+    all_candidates = sorted(recordings_dir.glob(f"{session_id}*.wav"))
+    wav_files = [f for f in all_candidates if f.suffix == ".wav"]
+
     if not wav_files:
-        logger.error("WAV ファイルが見つかりません: session_id=%s", session_id)
+        # デバッグ情報: 見つかったファイル一覧を表示
+        all_files = list(recordings_dir.glob("*.wav"))
+        logger.error(
+            "WAV ファイルが見つかりません: session_id=%s\n"
+            "  期待パターン: %s*.wav\n"
+            "  recordings/ 内の全WAVファイル: %s",
+            session_id,
+            session_id,
+            [f.name for f in all_files] if all_files else "なし",
+        )
         sys.exit(1)
 
     logger.info("%d 個の WAV ファイルを処理します。", len(wav_files))
@@ -129,7 +141,7 @@ def main(session_id: str) -> None:
     model = None
     used_model = primary
     device = ASR_CONFIG["device"]
-    
+
     try:
         model = _load_whisper(primary, device=device)
     except Exception as e:
@@ -142,12 +154,14 @@ def main(session_id: str) -> None:
             gc.collect()
             torch.cuda.empty_cache()
             logger.info("VRAM を解放してフォールバックを試行します。")
-            
+
             try:
                 model = _load_whisper(fallback, device=device)
                 used_model = fallback
             except torch.cuda.OutOfMemoryError:
-                logger.warning("OOM: %s (CUDA) → %s (CPU) へフォールバックします。", fallback, fallback)
+                logger.warning(
+                    "OOM: %s (CUDA) → %s (CPU) へフォールバックします。", fallback, fallback
+                )
                 gc.collect()
                 torch.cuda.empty_cache()
                 model = _load_whisper(fallback, device="cpu")

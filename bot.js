@@ -211,7 +211,15 @@ async function stopRecording(guildId) {
   for (const [userId, chunks] of perUserBuffers.entries()) {
     if (chunks.length === 0) continue;
     const pcm = Buffer.concat(chunks);
-    const filePath = path.join(recordingsDir, `${sessionId}_${userId}.wav`);
+    
+    // userId を文字列化してサニタイズ（特殊文字を除去して安全なファイル名にする）
+    const safeUserId = String(userId).replace(/[^0-9a-zA-Z]/g, '');
+    if (!safeUserId) {
+      console.warn(`⚠️ 無効な userId をスキップ: ${userId}`);
+      continue;
+    }
+    
+    const filePath = path.join(recordingsDir, `${sessionId}_${safeUserId}.wav`);
     writePcmToWav(pcm, filePath);
     savedFiles.push(filePath);
   }
