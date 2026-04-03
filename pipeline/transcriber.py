@@ -18,6 +18,9 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
+# 親ディレクトリをPythonパスに追加（utils モジュールをインポートするため）
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import yaml
 
 logging.basicConfig(
@@ -33,12 +36,13 @@ ASR_CONFIG = config["asr"]
 STORAGE = config["storage"]
 
 
-def _load_whisper(model_name: str):
+def _load_whisper(model_name: str, device: str = None):
     """Whisper モデルをロードする。OOM 時は呼び出し元でフォールバックする。"""
     import whisper
 
-    logger.info("Whisper '%s' をロード中 (device=%s)...", model_name, ASR_CONFIG["device"])
-    model = whisper.load_model(model_name, device=ASR_CONFIG["device"])
+    device = device or ASR_CONFIG["device"]
+    logger.info("Whisper '%s' をロード中 (device=%s)...", model_name, device)
+    model = whisper.load_model(model_name, device=device)
     logger.info("ロード完了: %s", model_name)
     return model
 
@@ -118,26 +122,42 @@ def main(session_id: str) -> None:
         session_start = datetime.now()
         logger.warning("session_id のパースに失敗しました。現在時刻を使用します。")
 
-    # Whisper ロード（OOM 時は medium へフォールバック）
+    # Whisper ロード（OOM 時は medium → CPU へ段階的フォールバック）
     primary = ASR_CONFIG["primary_model"].replace("whisper-", "")
     fallback = ASR_CONFIG["fallback_model"].replace("whisper-", "")
 
     model = None
     used_model = primary
+    device = ASR_CONFIG["device"]
+    
     try:
-        model = _load_whisper(primary)
+        model = _load_whisper(primary, device=device)
     except Exception as e:
         import torch
 
         if isinstance(e, torch.cuda.OutOfMemoryError):
-            logger.warning("OOM: large-v3 → %s へフォールバックします。", fallback)
-            _unload_whisper(model) if model else None
-            model = _load_whisper(fallback)
-            used_model = fallback
+            logger.warning("OOM: %s (CUDA) → %s (CUDA) へフォールバックします。", primary, fallback)
+            # OOM時は明示的にVRAMをクリア
+            del model
+            gc.collect()
+            torch.cuda.empty_cache()
+            logger.info("VRAM を解放してフォールバックを試行します。")
+            
+            try:
+                model = _load_whisper(fallback, device=device)
+                used_model = fallback
+            except torch.cuda.OutOfMemoryError:
+                logger.warning("OOM: %s (CUDA) → %s (CPU) へフォールバックします。", fallback, fallback)
+                gc.collect()
+                torch.cuda.empty_cache()
+                model = _load_whisper(fallback, device="cpu")
+                used_model = fallback
+                device = "cpu"
+                logger.warning("⚠️ CPU モードで実行中。処理時間が大幅に増加します。")
         else:
             raise
 
-    logger.info("使用モデル: whisper-%s", used_model)
+    logger.info("使用モデル: whisper-%s (device=%s)", used_model, device)
 
     # 全 WAV ファイルを順次処理
     all_lines: list[tuple[str, str]] = []  # (timestamp_str, line)

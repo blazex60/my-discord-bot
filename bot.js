@@ -281,14 +281,38 @@ async function runBatchPipeline(interaction, sessionId, startTime) {
     .filter((f) => f.startsWith(sessionId) && f.endsWith(".wav"));
   const totalWavs = Math.max(wavFiles.length, 1);
 
-  const edit = (content) => interaction.editReply({ content });
+  // インタラクショントークンは15分で有効期限切れになるため、
+  // 期限切れの場合はチャンネルに直接メッセージを送信する
+  let tokenExpired = false;
+  const edit = async (content) => {
+    if (tokenExpired) {
+      // トークンが既に期限切れの場合はチャンネルに直接送信
+      return;
+    }
+    try {
+      await interaction.editReply({ content });
+    } catch (err) {
+      if (err.code === 50027 || err.code === 10015) {
+        // 50027: Invalid Webhook Token, 10015: Unknown Webhook
+        console.warn("⚠️ インタラクショントークンが期限切れです。チャンネルに直接送信します。");
+        tokenExpired = true;
+      } else {
+        throw err;
+      }
+    }
+  };
 
   // フェーズ2: ASR
   await edit(`🎤 音声認識処理中 (Whisper)... 0/${totalWavs} ファイル`);
   try {
     await runPython(["pipeline/transcriber.py", sessionId]);
   } catch (code) {
-    await edit(`❌ エラーが発生しました: ASR 処理失敗 (終了コード: ${code})`);
+    const errorMsg = `❌ エラーが発生しました: ASR 処理失敗 (終了コード: ${code})`;
+    if (tokenExpired) {
+      await interaction.channel.send({ content: errorMsg });
+    } else {
+      await edit(errorMsg);
+    }
     return;
   }
   await edit(`🎤 音声認識処理中 (Whisper)... ${totalWavs}/${totalWavs} ファイル`);
@@ -305,14 +329,25 @@ async function runBatchPipeline(interaction, sessionId, startTime) {
   if (llmExitCode !== 0) {
     const partialPath = path.join(TMP_DIR, `partial_${sessionId}.txt`);
     if (llmExitCode === 2 && fs.existsSync(partialPath)) {
-      await edit(
-        "❌ エラーが発生しました: VRAM 不足により LLM 処理を中断しました。生成済みのチャンク要約を送信します。"
-      );
-      await interaction.channel.send({
-        files: [{ attachment: partialPath, name: `partial_${sessionId}.txt` }],
-      });
+      const errorMsg = "❌ エラーが発生しました: VRAM 不足により LLM 処理を中断しました。生成済みのチャンク要約を送信します。";
+      if (tokenExpired) {
+        await interaction.channel.send({
+          content: errorMsg,
+          files: [{ attachment: partialPath, name: `partial_${sessionId}.txt` }],
+        });
+      } else {
+        await edit(errorMsg);
+        await interaction.channel.send({
+          files: [{ attachment: partialPath, name: `partial_${sessionId}.txt` }],
+        });
+      }
     } else {
-      await edit(`❌ エラーが発生しました: LLM 処理失敗 (終了コード: ${llmExitCode})`);
+      const errorMsg = `❌ エラーが発生しました: LLM 処理失敗 (終了コード: ${llmExitCode})`;
+      if (tokenExpired) {
+        await interaction.channel.send({ content: errorMsg });
+      } else {
+        await edit(errorMsg);
+      }
     }
     return;
   }
@@ -322,12 +357,28 @@ async function runBatchPipeline(interaction, sessionId, startTime) {
   const outputPath = path.join(OUTPUT_DIR, `minutes_${sessionId}.md`);
 
   if (fs.existsSync(outputPath)) {
-    await edit(`✅ 議事録を生成しました（所要時間: ${elapsed} 分）`);
-    await interaction.channel.send({
-      files: [{ attachment: outputPath, name: `minutes_${sessionId}.md` }],
-    });
+    const successMsg = `✅ 議事録を生成しました（所要時間: ${elapsed} 分）`;
+    
+    if (tokenExpired) {
+      // トークンが期限切れの場合はチャンネルに直接送信
+      await interaction.channel.send({
+        content: successMsg,
+        files: [{ attachment: outputPath, name: `minutes_${sessionId}.md` }],
+      });
+    } else {
+      // トークンが有効な場合は通常通りeditReplyを使用
+      await edit(successMsg);
+      await interaction.channel.send({
+        files: [{ attachment: outputPath, name: `minutes_${sessionId}.md` }],
+      });
+    }
   } else {
-    await edit("❌ エラーが発生しました: 出力ファイルが見つかりません");
+    const errorMsg = "❌ エラーが発生しました: 出力ファイルが見つかりません";
+    if (tokenExpired) {
+      await interaction.channel.send({ content: errorMsg });
+    } else {
+      await edit(errorMsg);
+    }
     return;
   }
 
