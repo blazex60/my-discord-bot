@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "cryptography>=46.0.6",
+    "huggingface-hub>=1.9.0",
     "llama-cpp-python>=0.2.0",
     "openai-whisper>=20231117",
     "py-cord[voice]>=2.6",

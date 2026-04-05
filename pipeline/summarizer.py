@@ -106,12 +106,10 @@ def _load_llm():
         )
 
     logger.info("LLM ロード中: %s", model_path)
-    llm = Llama(
-        model_path=model_path,
-        n_ctx=LLM_CONFIG.get("n_ctx", 4096),
-        n_gpu_layers=LLM_CONFIG.get("n_gpu_layers", 20),
-        n_threads=LLM_CONFIG.get("n_threads", 8),
-        verbose=False,
+
+    llm = Llama.from_pretrained(
+	    repo_id="unsloth/gemma-4-26B-A4B-it-GGUF",
+	    filename="gemma-4-26B-A4B-it-UD-Q6_K.gguf",
     )
     logger.info("LLM ロード完了")
     return llm
