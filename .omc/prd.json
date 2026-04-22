@@ -1,0 +1,125 @@
+{
+  "project": "chat-summary-bot",
+  "description": "カオスな雑談Discordサーバー向けチャット要約Bot（テキストチャンネル専用）",
+  "stories": [
+    {
+      "id": "US-001",
+      "title": "プロジェクト基盤ファイルの作成",
+      "passes": false,
+      "acceptanceCriteria": [
+        "chat-summary-bot/pyproject.toml が存在し、py-cord / aiosqlite / httpx / apscheduler / pyyaml / python-dotenv の依存関係が記載されている",
+        "chat-summary-bot/config.yaml が存在し、llm.url / llm.timeout_seconds / storage.ttl_days / storage.max_messages_per_query(80) が設定されている",
+        "chat-summary-bot/.env.example が存在し DISCORD_TOKEN= が含まれている",
+        "chat-summary-bot/.gitignore が存在し .venv / data / models / .env を除外している"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Docker Compose 構成",
+      "passes": false,
+      "acceptanceCriteria": [
+        "chat-summary-bot/docker-compose.yml が存在し bot と llm の2サービスが定義されている",
+        "llm サービスに healthcheck が設定されている",
+        "bot サービスが depends_on: llm: condition: service_healthy で待機する",
+        "chat-summary-bot/Dockerfile が存在し Python 3.12 ベースで bot.py を起動する"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "DB層の実装 (db.py)",
+      "passes": false,
+      "acceptanceCriteria": [
+        "chat-summary-bot/db.py が存在する",
+        "init_db() が messages テーブルと config テーブルを作成する",
+        "save_message() がメッセージを expires_at 付きで保存する",
+        "get_messages(channel_id, limit) が有効なメッセージを返す",
+        "search_messages(query, limit) がコンテンツの部分一致で検索できる",
+        "delete_expired() が現在時刻より expires_at が古いレコードを削除する",
+        "get_config() / set_config() が config テーブルを CRUD できる"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "LLMクライアントの実装 (llm_client.py)",
+      "passes": false,
+      "acceptanceCriteria": [
+        "chat-summary-bot/llm_client.py が存在する",
+        "LLMClient クラスが httpx.AsyncClient で /completion エンドポイントを呼び出す",
+        "LLMUnavailableError が定義されており、接続失敗時に raise される",
+        "タイムアウトは config の llm.timeout_seconds を使用する"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "コレクターの実装 (collector.py)",
+      "passes": false,
+      "acceptanceCriteria": [
+        "chat-summary-bot/collector.py が存在する",
+        "fetch_recent(channel, limit) が DB 優先で取得し不足分を Discord API で補完する",
+        "fetch_by_topic(query, limit) が DB の search_messages を使用する",
+        "動的トランケーション: len(content) // 2 でトークン概算し n_ctx - 3000 以内に収める",
+        "切り詰めが発生した場合は truncated=True フラグを返す"
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "プロンプト定義 (prompts.py)",
+      "passes": false,
+      "acceptanceCriteria": [
+        "chat-summary-bot/prompts.py が存在する",
+        "build_summary_prompt(messages) が文字列を返す",
+        "build_search_prompt(messages, query) が文字列を返す",
+        "build_catchup_prompt(messages, topic) が文字列を返す",
+        "各プロンプトに日本語での箇条書き出力を指示するシステムプロンプトが含まれる"
+      ]
+    },
+    {
+      "id": "US-007",
+      "title": "スケジューラーの実装 (scheduler.py)",
+      "passes": false,
+      "acceptanceCriteria": [
+        "chat-summary-bot/scheduler.py が存在する",
+        "AsyncIOScheduler を使用して start_autopost(cron_expr, channel_id) が定義されている",
+        "stop_autopost() でスケジュールを停止できる",
+        "スケジュール設定が DB の config テーブルに永続化され再起動後も復元される"
+      ]
+    },
+    {
+      "id": "US-008",
+      "title": "Discord Bot 本体の実装 (bot.py)",
+      "passes": false,
+      "acceptanceCriteria": [
+        "chat-summary-bot/bot.py が存在する",
+        "on_ready で init_db() と TTL削除バックグラウンドタスクが起動する",
+        "on_message で除外チャンネル以外のメッセージが db.save_message() で保存される",
+        "/summary [count] コマンドが箇条書き要約を返す",
+        "/search <query> コマンドが要約＋Discordリンクを返す",
+        "/catch_up <topic> コマンドが話題の追いつき要約を返す",
+        "/watch add/remove コマンドで除外チャンネルを管理できる",
+        "/autopost set/off コマンドで定期投稿を制御できる",
+        "LLMUnavailableError 発生時に ❌ エラーメッセージを Discord に返す"
+      ]
+    },
+    {
+      "id": "US-009",
+      "title": "テストの実装 (tests/)",
+      "passes": false,
+      "acceptanceCriteria": [
+        "chat-summary-bot/tests/test_db.py が存在し、インメモリSQLiteでCRUD・TTL・config テストが通過する",
+        "chat-summary-bot/tests/test_llm_client.py が存在し、httpx をモックして LLMClient のテストが通過する",
+        "chat-summary-bot/tests/test_collector.py が存在し、動的トランケーションのテストが通過する",
+        "chat-summary-bot/tests/test_prompts.py が存在し、各プロンプト関数が文字列を返すテストが通過する",
+        "cd chat-summary-bot && uv run pytest tests/ が全テスト通過する"
+      ]
+    },
+    {
+      "id": "US-010",
+      "title": "コード品質チェック",
+      "passes": false,
+      "acceptanceCriteria": [
+        "cd chat-summary-bot && uv run ruff format --check . がエラー0で通過する",
+        "cd chat-summary-bot && uv run ruff check . がエラー0で通過する"
+      ]
+    }
+  ]
+}

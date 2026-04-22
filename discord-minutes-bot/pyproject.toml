@@ -5,12 +5,24 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "discord-py[voice]>=2.7.1",
-    "py-cord>=2.6",
-    "pycord>=0.1.1",
+    "cryptography>=46.0.6",
+    "huggingface-hub>=1.9.0",
+    "llama-cpp-python>=0.2.0",
+    "openai-whisper>=20231117",
+    "py-cord[voice]>=2.6",
+    "pynacl>=1.5.0",
     "python-dotenv>=1.2.2",
     "pyyaml>=6.0.3",
+    "torch>=2.0.0",
 ]
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu124" }
 
 [dependency-groups]
 dev = [

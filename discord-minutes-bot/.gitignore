@@ -1,0 +1,41 @@
+# 仮想環境
+.venv/
+
+# モデルファイル（大容量）— ディレクトリ構造は保持
+models/*
+!models/.gitkeep
+
+# 一時ファイル — ディレクトリ構造は保持
+tmp/recordings/*
+!tmp/recordings/.gitkeep
+tmp/transcripts/*
+!tmp/transcripts/.gitkeep
+*.wav
+*.mp3
+
+# 出力ファイル — ディレクトリ構造は保持
+output/*
+!output/.gitkeep
+
+# ログ — ディレクトリ構造は保持
+logs/*
+!logs/.gitkeep
+
+# 環境変数
+.env
+.env.*
+!.env.example
+
+# Node.js
+node_modules/
+package-lock.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

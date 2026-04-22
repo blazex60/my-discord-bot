@@ -20,6 +20,9 @@ import logging
 import sys
 from pathlib import Path
 
+# 親ディレクトリをPythonパスに追加（utils モジュールをインポートするため）
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import yaml
 
 logging.basicConfig(
@@ -103,12 +106,10 @@ def _load_llm():
         )
 
     logger.info("LLM ロード中: %s", model_path)
-    llm = Llama(
-        model_path=model_path,
-        n_ctx=LLM_CONFIG.get("n_ctx", 4096),
-        n_gpu_layers=LLM_CONFIG.get("n_gpu_layers", 20),
-        n_threads=LLM_CONFIG.get("n_threads", 8),
-        verbose=False,
+
+    llm = Llama.from_pretrained(
+        repo_id="unsloth/gemma-4-26B-A4B-it-GGUF",
+        filename="gemma-4-26B-A4B-it-UD-Q6_K.gguf",
     )
     logger.info("LLM ロード完了")
     return llm
@@ -186,10 +187,8 @@ def main(session_id: str) -> None:
     chat_log: str | None = None
     chat_path = tmp_dir / "transcripts" / f"{session_id}_chat.txt"
     if chat_path.exists():
-        chat_log = chat_path.read_text(encoding="utf-8").strip()
-        if not chat_log:
-            chat_log = None
-        else:
+        chat_log = chat_path.read_text(encoding="utf-8").strip() or None
+        if chat_log:
             logger.info("チャットログ読み込み完了: %d 文字", len(chat_log))
     else:
         logger.info("チャットログなし（音声のみで議事録を生成します）")
