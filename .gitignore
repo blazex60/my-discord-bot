@@ -5,3 +5,13 @@ CLAUDE.local.md
 # OS
 .DS_Store
 Thumbs.db
+
+# OMC ランタイム状態（プラン・仕様書は追跡対象）
+.omc/state/
+.omc/sessions/
+# 各ボットサブディレクトリ配下の .omc/（ランタイム状態のみ）
+*/.omc/
+
+# エディタ
+.vscode/
+.idea/

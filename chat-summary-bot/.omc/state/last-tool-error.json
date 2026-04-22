@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"uv run ruff check . && uv run ruff format --check . 2>&1\",\"description\":\"ruff 再チェック\"}",
-  "error": "Exit code 1\nwarning: The `tool.uv.dev-dependencies` field (used in `pyproject.toml`) is deprecated and will be removed in a future release; use `dependency-groups.dev` instead\nAll checks passed!\nwarning: The `tool.uv.dev-dependencies` field (used in `pyproject.toml`) is deprecated and will be removed in a future release; use `dependency-groups.dev` instead\nWould reformat: db.py\n1 file would be reformatted, 10 files already formatted",
-  "timestamp": "2026-04-22T04:00:36.984Z",
-  "retry_count": 3
-}

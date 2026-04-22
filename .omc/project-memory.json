@@ -248,6 +248,18 @@
       "accessCount": 1,
       "lastAccessed": 1776830306067,
       "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 1,
+      "lastAccessed": 1776837456384,
+      "type": "file"
+    },
+    {
+      "path": "chat-summary-bot/README.md",
+      "accessCount": 1,
+      "lastAccessed": 1776837472888,
+      "type": "file"
     }
   ],
   "userDirectives": []
