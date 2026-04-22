@@ -108,8 +108,8 @@ def _load_llm():
     logger.info("LLM ロード中: %s", model_path)
 
     llm = Llama.from_pretrained(
-	    repo_id="unsloth/gemma-4-26B-A4B-it-GGUF",
-	    filename="gemma-4-26B-A4B-it-UD-Q6_K.gguf",
+        repo_id="unsloth/gemma-4-26B-A4B-it-GGUF",
+        filename="gemma-4-26B-A4B-it-UD-Q6_K.gguf",
     )
     logger.info("LLM ロード完了")
     return llm

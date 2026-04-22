@@ -1,0 +1,34 @@
+services:
+  bot:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      llm:
+        condition: service_healthy
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - LLM_URL=http://llm:8080
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+
+  llm:
+    image: ghcr.io/ggerganov/llama.cpp:server
+    restart: unless-stopped
+    volumes:
+      - ./models:/models
+    command: >
+      -m /models/gemma4-26b.gguf
+      --port 8080
+      --host 0.0.0.0
+      --ctx-size 8192
+      --n-gpu-layers 0
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
