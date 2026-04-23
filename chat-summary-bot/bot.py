@@ -93,7 +93,7 @@ async def _ttl_cleanup_task() -> None:
                 logger.info("TTL切れメッセージを %d 件削除しました", deleted)
         except Exception:
             logger.exception("TTLクリーンアップに失敗しました")
-        await asyncio.sleep(3600)  # 1時間ごと
+        await asyncio.sleep(3600)
 
 
 # ── イベントハンドラ ─────────────────────────────────────────────
@@ -131,8 +131,8 @@ async def on_message(message: discord.Message) -> None:
 @bot.slash_command(name="summary", description="直近のメッセージを箇条書きで要約します")
 async def cmd_summary(
     ctx: discord.ApplicationContext,
-    count: discord.Option(
-        int, "取得件数（デフォルト50）", default=50, min_value=1, max_value=_MAX_MSGS
+    count: int = discord.Option(
+        description="取得件数（デフォルト50）", default=50, min_value=1, max_value=_MAX_MSGS
     ),
 ) -> None:
     await ctx.defer()
@@ -155,7 +155,7 @@ async def cmd_summary(
 @bot.slash_command(name="search", description="キーワードに関連する会話を検索・要約します")
 async def cmd_search(
     ctx: discord.ApplicationContext,
-    query: discord.Option(str, "検索キーワード"),
+    query: str = discord.Option(description="検索キーワード"),
 ) -> None:
     await ctx.defer()
     try:
@@ -165,7 +165,6 @@ async def cmd_search(
             return
         prompt = build_search_prompt(result.messages, query)
         summary = await llm.complete(prompt)
-        # Discord メッセージリンクを生成
         links = []
         guild_id = ctx.guild_id
         for msg in result.messages[:5]:
@@ -185,7 +184,7 @@ async def cmd_search(
 @bot.slash_command(name="catch_up", description="特定の話題の流れを追いつき要約します")
 async def cmd_catch_up(
     ctx: discord.ApplicationContext,
-    topic: discord.Option(str, "追いつきたい話題"),
+    topic: str = discord.Option(description="追いつきたい話題"),
 ) -> None:
     await ctx.defer()
     try:
@@ -207,7 +206,7 @@ watch_group = bot.create_group("watch", "監視チャンネルの管理")
 @watch_group.command(name="add", description="チャンネルを監視除外リストに追加します")
 async def cmd_watch_add(
     ctx: discord.ApplicationContext,
-    channel: discord.Option(discord.TextChannel, "除外するチャンネル"),
+    channel: discord.TextChannel = discord.Option(description="除外するチャンネル"),
 ) -> None:
     excluded = await _get_excluded_channels_async()
     excluded.add(channel.id)
@@ -218,7 +217,7 @@ async def cmd_watch_add(
 @watch_group.command(name="remove", description="チャンネルを監視除外リストから削除します")
 async def cmd_watch_remove(
     ctx: discord.ApplicationContext,
-    channel: discord.Option(discord.TextChannel, "除外を解除するチャンネル"),
+    channel: discord.TextChannel = discord.Option(description="除外を解除するチャンネル"),
 ) -> None:
     excluded = await _get_excluded_channels_async()
     excluded.discard(channel.id)
@@ -232,8 +231,8 @@ autopost_group = bot.create_group("autopost", "定期自動投稿の管理")
 @autopost_group.command(name="set", description="定期投稿スケジュールを設定します")
 async def cmd_autopost_set(
     ctx: discord.ApplicationContext,
-    cron: discord.Option(str, "cron 式（例: 0 9 * * *）"),
-    channel: discord.Option(discord.TextChannel, "投稿先チャンネル", default=None),
+    cron: str = discord.Option(description="cron 式（例: 0 9 * * *）"),
+    channel: discord.TextChannel = discord.Option(description="投稿先チャンネル", default=None),
 ) -> None:
     target = channel or ctx.channel
     if not isinstance(target, discord.TextChannel):
