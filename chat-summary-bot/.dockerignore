@@ -1,0 +1,15 @@
+# 巨大なデータやモデルを除外
+models/
+data/
+
+# Pythonのキャッシュや仮想環境を除外
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+
+# 環境変数ファイルやGit情報などを除外
+.env
+.git/
+.gitignore
