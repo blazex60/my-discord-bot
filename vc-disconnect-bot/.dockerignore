@@ -1,0 +1,16 @@
+# Pythonのキャッシュや仮想環境を除外
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+
+# 環境変数ファイルやGit情報などを除外
+.env
+.git/
+.gitignore
+
+# テスト・開発ツール
+tests/
+.pytest_cache/
+.ruff_cache/
