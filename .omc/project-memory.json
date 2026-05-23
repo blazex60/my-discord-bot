@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1776916975524,
-  "projectRoot": "/home/mi-server/Documents/my-discord-bot",
+  "lastScanned": 1779494618500,
+  "projectRoot": "/home/lemitsu/Documents/my-discord-bot",
   "techStack": {
     "languages": [],
     "frameworks": [],
@@ -36,7 +36,7 @@
       "path": "chat-summary-bot",
       "purpose": null,
       "fileCount": 16,
-      "lastAccessed": 1776916975519,
+      "lastAccessed": 1779494618495,
       "keyFiles": [
         "AGENTS.md",
         "Dockerfile",
@@ -48,59 +48,88 @@
     "discord-minutes-bot": {
       "path": "discord-minutes-bot",
       "purpose": null,
-      "fileCount": 12,
-      "lastAccessed": 1776916975519,
+      "fileCount": 13,
+      "lastAccessed": 1779494618497,
       "keyFiles": [
+        "AGENTS.md",
         "CLAUDE.md",
         "README.md",
         "bot.js",
-        "config.yaml",
-        "main.py"
+        "config.yaml"
       ]
-    },
-    "discord-minutes-bot/models": {
-      "path": "discord-minutes-bot/models",
-      "purpose": "Data models",
-      "fileCount": 1,
-      "lastAccessed": 1776916975521,
-      "keyFiles": []
     }
   },
   "hotPaths": [
     {
       "path": "chat-summary-bot/AGENTS.md",
-      "accessCount": 6,
-      "lastAccessed": 1776917513440,
-      "type": "file"
-    },
-    {
-      "path": "CLAUDE.md",
-      "accessCount": 3,
-      "lastAccessed": 1776828396496,
+      "accessCount": 8,
+      "lastAccessed": 1779495232415,
       "type": "file"
     },
     {
       "path": "chat-summary-bot/pyproject.toml",
-      "accessCount": 3,
-      "lastAccessed": 1776917633072,
+      "accessCount": 6,
+      "lastAccessed": 1779495221672,
       "type": "file"
     },
     {
-      "path": "discord-minutes-bot/README.md",
-      "accessCount": 2,
-      "lastAccessed": 1776837601229,
+      "path": "chat-summary-bot/Dockerfile",
+      "accessCount": 6,
+      "lastAccessed": 1779495222084,
       "type": "file"
     },
     {
-      "path": "discord-minutes-bot/CLAUDE.md",
-      "accessCount": 2,
-      "lastAccessed": 1776917337495,
+      "path": "chat-summary-bot/docker-compose.yml",
+      "accessCount": 6,
+      "lastAccessed": 1779495222548,
+      "type": "file"
+    },
+    {
+      "path": "discord-minutes-bot/bot.js",
+      "accessCount": 5,
+      "lastAccessed": 1779494790179,
       "type": "file"
     },
     {
       "path": "chat-summary-bot/bot.py",
-      "accessCount": 2,
-      "lastAccessed": 1776917345288,
+      "accessCount": 5,
+      "lastAccessed": 1779495044917,
+      "type": "file"
+    },
+    {
+      "path": "CLAUDE.md",
+      "accessCount": 5,
+      "lastAccessed": 1779495052043,
+      "type": "file"
+    },
+    {
+      "path": "discord-minutes-bot/CLAUDE.md",
+      "accessCount": 4,
+      "lastAccessed": 1779494780579,
+      "type": "file"
+    },
+    {
+      "path": "discord-minutes-bot/README.md",
+      "accessCount": 4,
+      "lastAccessed": 1779494854509,
+      "type": "file"
+    },
+    {
+      "path": "chat-summary-bot/config.yaml",
+      "accessCount": 4,
+      "lastAccessed": 1779495049007,
+      "type": "file"
+    },
+    {
+      "path": "chat-summary-bot/.env.example",
+      "accessCount": 3,
+      "lastAccessed": 1779495049218,
+      "type": "file"
+    },
+    {
+      "path": "chat-summary-bot/scheduler.py",
+      "accessCount": 3,
+      "lastAccessed": 1779495056078,
       "type": "file"
     },
     {
@@ -110,27 +139,87 @@
       "type": "file"
     },
     {
-      "path": "chat-summary-bot/docker-compose.yml",
-      "accessCount": 2,
-      "lastAccessed": 1776917608019,
-      "type": "file"
-    },
-    {
-      "path": "chat-summary-bot/Dockerfile",
-      "accessCount": 2,
-      "lastAccessed": 1776917608315,
-      "type": "file"
-    },
-    {
-      "path": "chat-summary-bot/config.yaml",
-      "accessCount": 2,
-      "lastAccessed": 1776917608527,
-      "type": "file"
-    },
-    {
       "path": "chat-summary-bot/llm_client.py",
       "accessCount": 2,
       "lastAccessed": 1776917608929,
+      "type": "file"
+    },
+    {
+      "path": "discord-minutes-bot/AGENTS.md",
+      "accessCount": 2,
+      "lastAccessed": 1779494780622,
+      "type": "file"
+    },
+    {
+      "path": "discord-minutes-bot/main.py",
+      "accessCount": 2,
+      "lastAccessed": 1779494780846,
+      "type": "file"
+    },
+    {
+      "path": "discord-minutes-bot/.env.example",
+      "accessCount": 2,
+      "lastAccessed": 1779494781297,
+      "type": "file"
+    },
+    {
+      "path": "discord-minutes-bot/config.yaml",
+      "accessCount": 2,
+      "lastAccessed": 1779494786211,
+      "type": "file"
+    },
+    {
+      "path": "discord-minutes-bot/pipeline/transcriber.py",
+      "accessCount": 2,
+      "lastAccessed": 1779494786285,
+      "type": "file"
+    },
+    {
+      "path": "discord-minutes-bot/pipeline/summarizer.py",
+      "accessCount": 2,
+      "lastAccessed": 1779494786505,
+      "type": "file"
+    },
+    {
+      "path": "discord-minutes-bot/utils/memory.py",
+      "accessCount": 2,
+      "lastAccessed": 1779494786727,
+      "type": "file"
+    },
+    {
+      "path": "chat-summary-bot/db.py",
+      "accessCount": 2,
+      "lastAccessed": 1779494787719,
+      "type": "file"
+    },
+    {
+      "path": "discord-minutes-bot/pyproject.toml",
+      "accessCount": 2,
+      "lastAccessed": 1779494794563,
+      "type": "file"
+    },
+    {
+      "path": "discord-minutes-bot/utils/chunker.py",
+      "accessCount": 2,
+      "lastAccessed": 1779494801731,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 2,
+      "lastAccessed": 1779494854066,
+      "type": "file"
+    },
+    {
+      "path": "AGENTS.md",
+      "accessCount": 2,
+      "lastAccessed": 1779495052492,
+      "type": "file"
+    },
+    {
+      "path": "chat-summary-bot/.dockerignore",
+      "accessCount": 2,
+      "lastAccessed": 1779495229349,
       "type": "file"
     },
     {
@@ -140,27 +229,9 @@
       "type": "directory"
     },
     {
-      "path": "chat-summary-bot/.env.example",
-      "accessCount": 1,
-      "lastAccessed": 1776830009376,
-      "type": "file"
-    },
-    {
       "path": "chat-summary-bot/prompts.py",
       "accessCount": 1,
       "lastAccessed": 1776830023029,
-      "type": "file"
-    },
-    {
-      "path": "chat-summary-bot/db.py",
-      "accessCount": 1,
-      "lastAccessed": 1776830075300,
-      "type": "file"
-    },
-    {
-      "path": "chat-summary-bot/scheduler.py",
-      "accessCount": 1,
-      "lastAccessed": 1776830090557,
       "type": "file"
     },
     {
@@ -188,51 +259,9 @@
       "type": "file"
     },
     {
-      "path": "README.md",
-      "accessCount": 1,
-      "lastAccessed": 1776837456384,
-      "type": "file"
-    },
-    {
       "path": "chat-summary-bot/README.md",
       "accessCount": 1,
       "lastAccessed": 1776837472888,
-      "type": "file"
-    },
-    {
-      "path": "discord-minutes-bot/main.py",
-      "accessCount": 1,
-      "lastAccessed": 1776917337985,
-      "type": "file"
-    },
-    {
-      "path": "discord-minutes-bot/bot.js",
-      "accessCount": 1,
-      "lastAccessed": 1776917338170,
-      "type": "file"
-    },
-    {
-      "path": "discord-minutes-bot/pipeline/transcriber.py",
-      "accessCount": 1,
-      "lastAccessed": 1776917342327,
-      "type": "file"
-    },
-    {
-      "path": "discord-minutes-bot/pipeline/summarizer.py",
-      "accessCount": 1,
-      "lastAccessed": 1776917342733,
-      "type": "file"
-    },
-    {
-      "path": "discord-minutes-bot/utils/chunker.py",
-      "accessCount": 1,
-      "lastAccessed": 1776917343125,
-      "type": "file"
-    },
-    {
-      "path": "discord-minutes-bot/utils/memory.py",
-      "accessCount": 1,
-      "lastAccessed": 1776917343994,
       "type": "file"
     },
     {
@@ -245,18 +274,6 @@
       "path": "discord-minutes-bot/tests/test_chunker.py",
       "accessCount": 1,
       "lastAccessed": 1776917344958,
-      "type": "file"
-    },
-    {
-      "path": "AGENTS.md",
-      "accessCount": 1,
-      "lastAccessed": 1776917374423,
-      "type": "file"
-    },
-    {
-      "path": "discord-minutes-bot/AGENTS.md",
-      "accessCount": 1,
-      "lastAccessed": 1776917409776,
       "type": "file"
     },
     {
@@ -287,6 +304,60 @@
       "path": "DAVE_LIMITATION.md",
       "accessCount": 1,
       "lastAccessed": 1776917706273,
+      "type": "file"
+    },
+    {
+      "path": "vc-disconnect-bot/pyproject.toml",
+      "accessCount": 1,
+      "lastAccessed": 1779495245614,
+      "type": "file"
+    },
+    {
+      "path": "vc-disconnect-bot/config.yaml",
+      "accessCount": 1,
+      "lastAccessed": 1779495246770,
+      "type": "file"
+    },
+    {
+      "path": "vc-disconnect-bot/.env.example",
+      "accessCount": 1,
+      "lastAccessed": 1779495247329,
+      "type": "file"
+    },
+    {
+      "path": "vc-disconnect-bot/.dockerignore",
+      "accessCount": 1,
+      "lastAccessed": 1779495250764,
+      "type": "file"
+    },
+    {
+      "path": "vc-disconnect-bot/timer.py",
+      "accessCount": 1,
+      "lastAccessed": 1779495270656,
+      "type": "file"
+    },
+    {
+      "path": "vc-disconnect-bot/Dockerfile",
+      "accessCount": 1,
+      "lastAccessed": 1779495271967,
+      "type": "file"
+    },
+    {
+      "path": "vc-disconnect-bot/docker-compose.yml",
+      "accessCount": 1,
+      "lastAccessed": 1779495272932,
+      "type": "file"
+    },
+    {
+      "path": "vc-disconnect-bot/tests/__init__.py",
+      "accessCount": 1,
+      "lastAccessed": 1779495273201,
+      "type": "file"
+    },
+    {
+      "path": "vc-disconnect-bot/tests/test_timer.py",
+      "accessCount": 1,
+      "lastAccessed": 1779495298202,
       "type": "file"
     }
   ],
