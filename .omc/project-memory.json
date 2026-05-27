@@ -10,7 +10,7 @@
   },
   "build": {
     "buildCommand": null,
-    "testCommand": null,
+    "testCommand": "cd /home/lemitsu/Documents/my-discord-bot/vc-disconnect-bot && uv run pytest tests/ -v 2>&1",
     "lintCommand": null,
     "devCommand": null,
     "scripts": {}
@@ -74,9 +74,21 @@
   },
   "hotPaths": [
     {
+      "path": "vc-disconnect-bot/timer.py",
+      "accessCount": 12,
+      "lastAccessed": 1779857605546,
+      "type": "file"
+    },
+    {
       "path": "chat-summary-bot/AGENTS.md",
       "accessCount": 8,
       "lastAccessed": 1779495232415,
+      "type": "file"
+    },
+    {
+      "path": "vc-disconnect-bot/tests/test_timer.py",
+      "accessCount": 7,
+      "lastAccessed": 1779857631270,
       "type": "file"
     },
     {
@@ -116,6 +128,18 @@
       "type": "file"
     },
     {
+      "path": "vc-disconnect-bot/pyproject.toml",
+      "accessCount": 5,
+      "lastAccessed": 1779857689855,
+      "type": "file"
+    },
+    {
+      "path": "vc-disconnect-bot/config.yaml",
+      "accessCount": 5,
+      "lastAccessed": 1779858398109,
+      "type": "file"
+    },
+    {
       "path": "discord-minutes-bot/CLAUDE.md",
       "accessCount": 4,
       "lastAccessed": 1779494780579,
@@ -134,6 +158,12 @@
       "type": "file"
     },
     {
+      "path": "vc-disconnect-bot/docker-compose.yml",
+      "accessCount": 4,
+      "lastAccessed": 1779858401908,
+      "type": "file"
+    },
+    {
       "path": "chat-summary-bot/.env.example",
       "accessCount": 3,
       "lastAccessed": 1779495049218,
@@ -143,6 +173,12 @@
       "path": "chat-summary-bot/scheduler.py",
       "accessCount": 3,
       "lastAccessed": 1779495056078,
+      "type": "file"
+    },
+    {
+      "path": "vc-disconnect-bot/Dockerfile",
+      "accessCount": 3,
+      "lastAccessed": 1779858402104,
       "type": "file"
     },
     {
@@ -236,21 +272,9 @@
       "type": "file"
     },
     {
-      "path": "vc-disconnect-bot/pyproject.toml",
+      "path": "vc-disconnect-bot/.env.example",
       "accessCount": 2,
-      "lastAccessed": 1779850982627,
-      "type": "file"
-    },
-    {
-      "path": "vc-disconnect-bot/timer.py",
-      "accessCount": 2,
-      "lastAccessed": 1779853804290,
-      "type": "file"
-    },
-    {
-      "path": "vc-disconnect-bot/tests/test_timer.py",
-      "accessCount": 2,
-      "lastAccessed": 1779853804501,
+      "lastAccessed": 1779855368852,
       "type": "file"
     },
     {
@@ -338,33 +362,9 @@
       "type": "file"
     },
     {
-      "path": "vc-disconnect-bot/config.yaml",
-      "accessCount": 1,
-      "lastAccessed": 1779495246770,
-      "type": "file"
-    },
-    {
-      "path": "vc-disconnect-bot/.env.example",
-      "accessCount": 1,
-      "lastAccessed": 1779495247329,
-      "type": "file"
-    },
-    {
       "path": "vc-disconnect-bot/.dockerignore",
       "accessCount": 1,
       "lastAccessed": 1779495250764,
-      "type": "file"
-    },
-    {
-      "path": "vc-disconnect-bot/Dockerfile",
-      "accessCount": 1,
-      "lastAccessed": 1779495271967,
-      "type": "file"
-    },
-    {
-      "path": "vc-disconnect-bot/docker-compose.yml",
-      "accessCount": 1,
-      "lastAccessed": 1779495272932,
       "type": "file"
     },
     {

@@ -7,7 +7,6 @@ import pytest
 
 from timer import GuildTimer, fmt_jst, parse_alarm_time
 
-
 # --- parse_alarm_time ---
 
 
@@ -72,10 +71,18 @@ def _make_member(display_name: str, is_bot: bool = False) -> MagicMock:
     return member
 
 
-def _make_timer(trigger_at, warning_seconds=60, on_complete=None, members=None):
-    voice_client = MagicMock(spec=["is_connected", "disconnect"])
-    voice_client.is_connected.return_value = True
-    voice_client.disconnect = AsyncMock()
+def _make_timer(
+    trigger_at,
+    warning_seconds=60,
+    on_complete=None,
+    members=None,
+    target_members=None,
+    voice_client=...,
+):
+    if voice_client is ...:
+        voice_client = MagicMock(spec=["is_connected", "disconnect"])
+        voice_client.is_connected.return_value = True
+        voice_client.disconnect = AsyncMock()
 
     perms = MagicMock()
     perms.move_members = True
@@ -100,6 +107,7 @@ def _make_timer(trigger_at, warning_seconds=60, on_complete=None, members=None):
         trigger_at=trigger_at,
         warning_seconds=warning_seconds,
         on_complete=on_complete,
+        target_members=target_members,
     )
 
 
@@ -189,3 +197,81 @@ async def test_disconnect_all_no_move_members_permission():
     timer._voice_client.disconnect.assert_awaited_once()
     timer._text_channel.send.assert_called()
     assert any("権限" in str(c) for c in timer._text_channel.send.call_args_list)
+
+
+@pytest.mark.asyncio
+async def test_disconnect_target_members_only():
+    """target_members=[111] を指定した場合、user1 のみ切断され user2 は切断されない。"""
+    trigger_at = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=1)
+    on_complete = AsyncMock()
+
+    user1 = _make_member("User1")
+    user1.id = 111
+    user2 = _make_member("User2")
+    user2.id = 222
+
+    timer = _make_timer(
+        trigger_at,
+        warning_seconds=0,
+        on_complete=on_complete,
+        members=[user1, user2],
+        target_members=[111],
+    )
+
+    task = timer.start()
+    await asyncio.wait_for(task, timeout=2.0)
+
+    user1.move_to.assert_awaited_once_with(None)
+    user2.move_to.assert_not_called()
+    on_complete.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_disconnect_target_members_absent():
+    """target_members=[111] だが user1 は既に退出済みの場合、move_to は呼ばれず ℹ️ メッセージが送信される。"""
+    trigger_at = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=1)
+    on_complete = AsyncMock()
+
+    user2 = _make_member("User2")
+    user2.id = 222
+
+    # user1 (id=111) は VC にいない — members には user2 のみ
+    timer = _make_timer(
+        trigger_at,
+        warning_seconds=0,
+        on_complete=on_complete,
+        members=[user2],
+        target_members=[111],
+    )
+
+    task = timer.start()
+    await asyncio.wait_for(task, timeout=2.0)
+
+    user2.move_to.assert_not_called()
+    timer._text_channel.send.assert_called()
+    assert any("ℹ️" in str(c) for c in timer._text_channel.send.call_args_list)
+    on_complete.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_disconnect_without_voice_client():
+    """voice_client=None の場合、disconnect() は呼ばれないがメンバーは切断されテキスト送信は行われる。"""
+    trigger_at = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=1)
+    on_complete = AsyncMock()
+
+    human = _make_member("Alice")
+
+    timer = _make_timer(
+        trigger_at,
+        warning_seconds=0,
+        on_complete=on_complete,
+        members=[human],
+        voice_client=None,
+    )
+
+    task = timer.start()
+    await asyncio.wait_for(task, timeout=2.0)
+
+    human.move_to.assert_awaited_once_with(None)
+    timer._text_channel.send.assert_called()
+    on_complete.assert_awaited_once()
