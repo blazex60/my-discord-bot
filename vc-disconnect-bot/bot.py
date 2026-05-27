@@ -28,64 +28,39 @@ class GuildState:
     voice_client: discord.VoiceClient
     voice_channel: discord.VoiceChannel
     text_channel: discord.TextChannel
-    task: asyncio.Task
-    timer: GuildTimer
+    task: asyncio.Task | None
+    timer: GuildTimer | None
     mode: str
-    trigger_at: datetime.datetime
+    trigger_at: datetime.datetime | None
 
 
 _guild_states: dict[int, GuildState] = {}
+
+
+def _has_active_timer(guild_id: int) -> bool:
+    state = _guild_states.get(guild_id)
+    return state is not None and state.task is not None and not state.task.done()
 
 
 async def _cleanup(guild_id: int) -> None:
     _guild_states.pop(guild_id, None)
 
 
-async def _ensure_joined(
-    ctx: discord.ApplicationContext,
-) -> tuple[discord.VoiceClient | None, discord.VoiceChannel | None]:
-    guild_id = ctx.guild_id
-
-    if guild_id in _guild_states:
-        state = _guild_states[guild_id]
-        if not state.task.done():
-            await ctx.respond(
-                "❌ すでにタイマーが動いています。`/vc cancel` で先にキャンセルしてください",
-                ephemeral=True,
-            )
-            return None, None
-        return state.voice_client, state.voice_channel
-
-    if not ctx.author.voice or not ctx.author.voice.channel:
-        await ctx.respond("❌ まずVCに参加してください", ephemeral=True)
-        return None, None
-
-    channel = ctx.author.voice.channel
-    perms = channel.permissions_for(ctx.guild.me)
-    if not perms.connect:
-        await ctx.respond(f"❌ {channel.mention} に接続する権限がありません", ephemeral=True)
-        return None, None
-
-    voice_client = await channel.connect()
-    return voice_client, channel
-
-
-async def _arm_timer(
-    ctx: discord.ApplicationContext,
+def _arm_timer(
+    guild_id: int,
     voice_client: discord.VoiceClient,
     voice_channel: discord.VoiceChannel,
+    text_channel: discord.TextChannel,
     trigger_at: datetime.datetime,
     mode: str,
 ) -> None:
-    guild_id = ctx.guild_id
-
     async def on_complete() -> None:
         await _cleanup(guild_id)
 
     timer = GuildTimer(
         voice_client=voice_client,
         voice_channel=voice_channel,
-        text_channel=ctx.channel,
+        text_channel=text_channel,
         trigger_at=trigger_at,
         warning_seconds=_WARNING_SECONDS,
         on_complete=on_complete,
@@ -95,7 +70,7 @@ async def _arm_timer(
     _guild_states[guild_id] = GuildState(
         voice_client=voice_client,
         voice_channel=voice_channel,
-        text_channel=ctx.channel,
+        text_channel=text_channel,
         task=task,
         timer=timer,
         mode=mode,
@@ -103,12 +78,36 @@ async def _arm_timer(
     )
 
 
+async def _get_or_connect(
+    ctx: discord.ApplicationContext,
+    channel: discord.VoiceChannel,
+) -> tuple[discord.VoiceClient, discord.VoiceChannel] | None:
+    existing = _guild_states.get(ctx.guild_id)
+    if existing and existing.voice_client.is_connected():
+        return existing.voice_client, existing.voice_channel
+    try:
+        return await channel.connect(), channel
+    except Exception as e:
+        logger.error("VC connect failed: %s", e)
+        await ctx.channel.send("❌ VCへの接続に失敗しました。タイマーをキャンセルします。")
+        return None
+
+
 @vc_group.command(name="join", description="ボットを現在のVCに参加させます（タイマーなし）")
 async def cmd_vc_join(ctx: discord.ApplicationContext) -> None:
-    if ctx.guild_id in _guild_states:
+    if _has_active_timer(ctx.guild_id):
         state = _guild_states[ctx.guild_id]
         await ctx.respond(
-            f"❌ すでに {state.voice_channel.mention} に参加しています", ephemeral=True
+            f"❌ すでに {state.voice_channel.mention} でタイマーが動作中です。`/vc cancel` で先にキャンセルしてください",
+            ephemeral=True,
+        )
+        return
+
+    existing = _guild_states.get(ctx.guild_id)
+    if existing and existing.voice_client.is_connected():
+        await ctx.respond(
+            f"❌ すでに {existing.voice_channel.mention} に参加しています",
+            ephemeral=True,
         )
         return
 
@@ -122,50 +121,60 @@ async def cmd_vc_join(ctx: discord.ApplicationContext) -> None:
         await ctx.respond(f"❌ {channel.mention} に接続する権限がありません", ephemeral=True)
         return
 
-    voice_client = await channel.connect()
-
-    async def on_complete() -> None:
-        await _cleanup(ctx.guild_id)
-
-    timer_placeholder = GuildTimer(
-        voice_client=voice_client,
-        voice_channel=channel,
-        text_channel=ctx.channel,
-        trigger_at=datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=365),
-        warning_seconds=_WARNING_SECONDS,
-        on_complete=on_complete,
+    # 応答をconnect()より先に返す（3秒のインタラクション制限内に収める）
+    await ctx.respond(
+        f"✅ {channel.mention} に参加しました。`/vc timer` または `/vc alarm` でタイマーを設定してください"
     )
 
+    voice_client = await channel.connect()
     _guild_states[ctx.guild_id] = GuildState(
         voice_client=voice_client,
         voice_channel=channel,
         text_channel=ctx.channel,
-        task=asyncio.get_event_loop().create_future(),
-        timer=timer_placeholder,
+        task=None,
+        timer=None,
         mode="none",
-        trigger_at=datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=365),
-    )
-    _guild_states[ctx.guild_id].task.cancel()
-
-    await ctx.respond(
-        f"✅ {channel.mention} に参加しました。`/vc timer` または `/vc alarm` でタイマーを設定してください"
+        trigger_at=None,
     )
 
 
 @vc_group.command(name="timer", description="N分後にVCの全員を切断します")
 async def cmd_vc_timer(
     ctx: discord.ApplicationContext,
-    minutes: int = discord.Option(int, description="切断までの分数（1〜1440）", min_value=1, max_value=1440),
+    minutes: int = discord.Option(
+        int, description="切断までの分数（1〜1440）", min_value=1, max_value=1440
+    ),
 ) -> None:
-    voice_client, voice_channel = await _ensure_joined(ctx)
-    if voice_client is None:
+    if _has_active_timer(ctx.guild_id):
+        await ctx.respond(
+            "❌ すでにタイマーが動いています。`/vc cancel` で先にキャンセルしてください",
+            ephemeral=True,
+        )
+        return
+
+    if not ctx.author.voice or not ctx.author.voice.channel:
+        await ctx.respond("❌ まずVCに参加してください", ephemeral=True)
+        return
+
+    channel = ctx.author.voice.channel
+    perms = channel.permissions_for(ctx.guild.me)
+    if not perms.connect:
+        await ctx.respond(f"❌ {channel.mention} に接続する権限がありません", ephemeral=True)
         return
 
     trigger_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=minutes)
-    await _arm_timer(ctx, voice_client, voice_channel, trigger_at, mode="timer")
+
+    # connect() より先に応答してインタラクションタイムアウトを防ぐ
     await ctx.respond(
-        f"⏱️ {minutes}分後（{fmt_jst(trigger_at)}）に {voice_channel.mention} の全員を切断します"
+        f"⏱️ {minutes}分後（{fmt_jst(trigger_at)}）に {channel.mention} の全員を切断します"
     )
+
+    result = await _get_or_connect(ctx, channel)
+    if result is None:
+        return
+    voice_client, voice_channel = result
+
+    _arm_timer(ctx.guild_id, voice_client, voice_channel, ctx.channel, trigger_at, mode="timer")
 
 
 @vc_group.command(name="alarm", description="指定時刻（JST）にVCの全員を切断します")
@@ -175,25 +184,40 @@ async def cmd_vc_alarm(
 ) -> None:
     trigger_at = parse_alarm_time(time)
     if trigger_at is None:
+        await ctx.respond("❌ 時刻の形式が正しくありません（例: 22:00）", ephemeral=True)
+        return
+
+    if _has_active_timer(ctx.guild_id):
         await ctx.respond(
-            "❌ 時刻の形式が正しくありません（例: 22:00）", ephemeral=True
+            "❌ すでにタイマーが動いています。`/vc cancel` で先にキャンセルしてください",
+            ephemeral=True,
         )
         return
 
-    voice_client, voice_channel = await _ensure_joined(ctx)
-    if voice_client is None:
+    if not ctx.author.voice or not ctx.author.voice.channel:
+        await ctx.respond("❌ まずVCに参加してください", ephemeral=True)
         return
 
-    await _arm_timer(ctx, voice_client, voice_channel, trigger_at, mode="alarm")
-    await ctx.respond(
-        f"⏰ {fmt_jst(trigger_at)} に {voice_channel.mention} の全員を切断します"
-    )
+    channel = ctx.author.voice.channel
+    perms = channel.permissions_for(ctx.guild.me)
+    if not perms.connect:
+        await ctx.respond(f"❌ {channel.mention} に接続する権限がありません", ephemeral=True)
+        return
+
+    await ctx.respond(f"⏰ {fmt_jst(trigger_at)} に {channel.mention} の全員を切断します")
+
+    result = await _get_or_connect(ctx, channel)
+    if result is None:
+        return
+    voice_client, voice_channel = result
+
+    _arm_timer(ctx.guild_id, voice_client, voice_channel, ctx.channel, trigger_at, mode="alarm")
 
 
 @vc_group.command(name="status", description="現在のタイマー状態を表示します")
 async def cmd_vc_status(ctx: discord.ApplicationContext) -> None:
     state = _guild_states.get(ctx.guild_id)
-    if not state or state.mode == "none":
+    if not state or state.task is None or state.task.done():
         await ctx.respond("📭 現在アクティブなタイマーはありません", ephemeral=True)
         return
 
@@ -225,7 +249,8 @@ async def cmd_vc_cancel(ctx: discord.ApplicationContext) -> None:
         await ctx.respond("📭 キャンセルするタイマーがありません", ephemeral=True)
         return
 
-    await state.timer.cancel()
+    if state.timer is not None:
+        await state.timer.cancel()
     if state.voice_client.is_connected():
         await state.voice_client.disconnect()
 

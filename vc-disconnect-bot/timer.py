@@ -111,7 +111,7 @@ class GuildTimer:
                 await self._voice_client.disconnect()
             return
 
-        members = list(channel.members)
+        members = [m for m in channel.members if not m.bot]
         await self._text_channel.send(
             f"🔔 時間になりました。{channel.mention} の全員を切断します（{len(members)}人）"
         )
