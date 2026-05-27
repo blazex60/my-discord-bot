@@ -40,12 +40,13 @@ def fmt_jst(dt: datetime.datetime) -> str:
 class GuildTimer:
     def __init__(
         self,
-        voice_client: discord.VoiceClient,
+        voice_client: discord.VoiceClient | None,
         voice_channel: discord.VoiceChannel,
         text_channel: discord.TextChannel,
         trigger_at: datetime.datetime,
         warning_seconds: int,
         on_complete: Callable[[], Awaitable[None]],
+        target_members: list[int] | None = None,
     ) -> None:
         self._voice_client = voice_client
         self._voice_channel = voice_channel
@@ -53,6 +54,7 @@ class GuildTimer:
         self._trigger_at = trigger_at
         self._warning_seconds = warning_seconds
         self._on_complete = on_complete
+        self._target_members = target_members
         self._task: asyncio.Task | None = None
 
     def start(self) -> asyncio.Task:
@@ -84,9 +86,11 @@ class GuildTimer:
             warning_wait = total_seconds - self._warning_seconds
             if warning_wait > 0:
                 await asyncio.sleep(warning_wait)
-                await self._text_channel.send(
-                    f"⚠️ あと{self._warning_seconds}秒で {self._voice_channel.mention} の全員を切断します"
-                )
+                if self._target_members is not None:
+                    target_label = f"{len(self._target_members)}人の指定メンバーを切断します"
+                else:
+                    target_label = f"{self._voice_channel.mention} の全員を切断します"
+                await self._text_channel.send(f"⚠️ あと{self._warning_seconds}秒で {target_label}")
                 await asyncio.sleep(self._warning_seconds)
             else:
                 await asyncio.sleep(total_seconds)
@@ -107,13 +111,26 @@ class GuildTimer:
             await self._text_channel.send(
                 f"❌ `メンバーを移動` 権限がないため {channel.mention} の全員を切断できません"
             )
-            if self._voice_client.is_connected():
+            if self._voice_client and self._voice_client.is_connected():
                 await self._voice_client.disconnect()
             return
 
-        members = [m for m in channel.members if not m.bot]
+        all_humans = [m for m in channel.members if not m.bot]
+        if self._target_members is not None:
+            members = [m for m in all_humans if m.id in self._target_members]
+            label = "指定メンバーを切断"
+        else:
+            members = all_humans
+            label = "全員を切断"
+
+        if not members:
+            await self._text_channel.send(f"ℹ️ 対象メンバーは既に {channel.mention} にいません")
+            if self._voice_client and self._voice_client.is_connected():
+                await self._voice_client.disconnect()
+            return
+
         await self._text_channel.send(
-            f"🔔 時間になりました。{channel.mention} の全員を切断します（{len(members)}人）"
+            f"🔔 時間になりました。{channel.mention} の{label}します（{len(members)}人）"
         )
 
         failed: list[str] = []
@@ -130,5 +147,5 @@ class GuildTimer:
                 f"⚠️ 権限不足で切断できなかったメンバー: {', '.join(failed)}"
             )
 
-        if self._voice_client.is_connected():
+        if self._voice_client and self._voice_client.is_connected():
             await self._voice_client.disconnect()
