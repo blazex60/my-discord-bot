@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1779494618500,
+  "lastScanned": 1779848275042,
   "projectRoot": "/home/lemitsu/Documents/my-discord-bot",
   "techStack": {
     "languages": [],
@@ -36,7 +36,7 @@
       "path": "chat-summary-bot",
       "purpose": null,
       "fileCount": 16,
-      "lastAccessed": 1779494618495,
+      "lastAccessed": 1779848275037,
       "keyFiles": [
         "AGENTS.md",
         "Dockerfile",
@@ -49,12 +49,25 @@
       "path": "discord-minutes-bot",
       "purpose": null,
       "fileCount": 13,
-      "lastAccessed": 1779494618497,
+      "lastAccessed": 1779848275038,
       "keyFiles": [
         "AGENTS.md",
         "CLAUDE.md",
         "README.md",
         "bot.js",
+        "config.yaml"
+      ]
+    },
+    "vc-disconnect-bot": {
+      "path": "vc-disconnect-bot",
+      "purpose": null,
+      "fileCount": 13,
+      "lastAccessed": 1779848275039,
+      "keyFiles": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        "Dockerfile",
+        "bot.py",
         "config.yaml"
       ]
     }
@@ -223,6 +236,12 @@
       "type": "file"
     },
     {
+      "path": "vc-disconnect-bot/pyproject.toml",
+      "accessCount": 2,
+      "lastAccessed": 1779850982627,
+      "type": "file"
+    },
+    {
       "path": "",
       "accessCount": 1,
       "lastAccessed": 1776829923219,
@@ -304,12 +323,6 @@
       "path": "DAVE_LIMITATION.md",
       "accessCount": 1,
       "lastAccessed": 1776917706273,
-      "type": "file"
-    },
-    {
-      "path": "vc-disconnect-bot/pyproject.toml",
-      "accessCount": 1,
-      "lastAccessed": 1779495245614,
       "type": "file"
     },
     {
