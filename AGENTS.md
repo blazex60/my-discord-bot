@@ -1,4 +1,4 @@
-<!-- Generated: 2026-04-23 | Updated: 2026-04-23 -->
+<!-- Generated: 2026-04-23 | Updated: 2026-05-28 -->
 
 # my-discord-bot
 
@@ -21,6 +21,7 @@
 |-----------|---------|
 | `discord-minutes-bot/` | Discord VC 録音 → オフライン ASR/LLM → 議事録自動生成（see `discord-minutes-bot/AGENTS.md`） |
 | `chat-summary-bot/` | 雑談チャンネルのテキスト要約・話題検索・追いつきサポート（see `chat-summary-bot/AGENTS.md`） |
+| `vc-disconnect-bot/` | タイマー・アラームで VC 全員（または指定メンバー）を切断するBot（see `vc-disconnect-bot/AGENTS.md`） |
 
 ## For AI Agents
 
@@ -28,7 +29,7 @@
 
 - ボットを横断する変更は行わない。各ボットのディレクトリ内の CLAUDE.md と AGENTS.md を必ず参照してから作業する
 - シークレット（DISCORD_TOKEN 等）はソースコードに絶対に書かない。各ボットの `.env` で管理する
-- 外部 AI API（OpenAI API、Anthropic API 等）は使用しない（両ボット共通の禁止事項）
+- 外部 AI API（OpenAI API、Anthropic API 等）は使用しない（全ボット共通の禁止事項）
 
 ### Testing Requirements
 
@@ -36,8 +37,8 @@
 
 ### Common Patterns
 
-- パッケージ管理: `uv`（両ボットとも）
-- フォーマット/リント: `ruff format .` / `ruff check .`（両ボットとも）
+- パッケージ管理: `uv`（全ボット共通）
+- フォーマット/リント: `ruff format .` / `ruff check .`（全ボット共通）
 
 ## Dependencies
 
@@ -45,7 +46,7 @@
 
 | パッケージ | 用途 |
 |---|---|
-| `py-cord` | 両ボットの Discord Bot フレームワーク |
+| `py-cord` | 全ボットの Discord Bot フレームワーク |
 | `uv` | Python パッケージ管理ツール |
 
 <!-- MANUAL: リポジトリ全体のメモはここ以降に追記 -->
