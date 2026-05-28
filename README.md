@@ -8,6 +8,7 @@
 |---|---|
 | [`discord-minutes-bot/`](discord-minutes-bot/README.md) | Discord VC 録音 → オフライン ASR/LLM → 議事録自動生成 |
 | [`chat-summary-bot/`](chat-summary-bot/README.md) | 雑談チャンネルの要約・話題検索・追いつきサポート |
+| [`vc-disconnect-bot/`](vc-disconnect-bot/README.md) | タイマー・アラームで VC の全員または特定ユーザーを切断・移動 |
 
 ## 共通環境
 
