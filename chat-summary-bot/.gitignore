@@ -1,7 +1,7 @@
 .venv/
 data/
 models/
-.env
+
 __pycache__/
 *.py[cod]
 *.egg-info/
