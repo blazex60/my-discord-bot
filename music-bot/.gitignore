@@ -1,11 +1,10 @@
 .venv/
-data/
-models/
 .env
 __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
+uv.lock
 dist/
 build/
