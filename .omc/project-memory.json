@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1779935448748,
+  "lastScanned": 1781065289829,
   "projectRoot": "/home/lemitsu/Documents/my-discord-bot",
   "techStack": {
     "languages": [],
@@ -10,7 +10,7 @@
   },
   "build": {
     "buildCommand": null,
-    "testCommand": "find /home/lemitsu/Documents/my-discord-bot -type d \\\n  -not -path '*/node_modules' \\\n  -not -path '*/.git' \\\n  -not -path '*/dist' \\\n  -not -path '*/build' \\\n  -not -path '*/__pycache__' \\\n  -not -path '*/.venv' \\\n  -not -path '*/coverage' \\\n  -not -path '*/.next' \\\n  -not -path '*/.nuxt' \\\n  -not -path '*/.pytest_cache' \\\n  -not -path '*/*.egg-info' -print0 | sort -z | while IFS= read -r -d '' dir; do\n  printf '%s\\n' \"$dir\"\n  find \"$dir\" -maxdepth 1 -type f | sort | sed 's|^|  |'\ndone",
+    "testCommand": "find /home/lemitsu/Documents/my-discord-bot/music-bot -maxdepth 2 -type f \\( -name \"*.py\" -o -name \"*.toml\" -o -name \"*.txt\" -o -name \"*.md\" \\) ! -path \"*/.venv/*\" ! -path \"*/__pycache__/*\" ! -path \"*/.pytest_cache/*\" ! -path \"*/.ruff_cache/*\" ! -path \"*/.omc/*\" ! -path \"*/.vscode/*\" | sort",
     "lintCommand": null,
     "devCommand": null,
     "scripts": {}
@@ -32,11 +32,24 @@
   },
   "customNotes": [],
   "directoryMap": {
+    "DiscordVoiceVox": {
+      "path": "DiscordVoiceVox",
+      "purpose": null,
+      "fileCount": 15,
+      "lastAccessed": 1781065289825,
+      "keyFiles": [
+        "AGENTS.md",
+        "Dockerfile",
+        "LICENSE",
+        "LavalinkClient.py",
+        "README.md"
+      ]
+    },
     "chat-summary-bot": {
       "path": "chat-summary-bot",
       "purpose": null,
       "fileCount": 16,
-      "lastAccessed": 1779935448744,
+      "lastAccessed": 1781065289825,
       "keyFiles": [
         "AGENTS.md",
         "Dockerfile",
@@ -49,7 +62,7 @@
       "path": "discord-minutes-bot",
       "purpose": null,
       "fileCount": 13,
-      "lastAccessed": 1779935448745,
+      "lastAccessed": 1781065289827,
       "keyFiles": [
         "AGENTS.md",
         "CLAUDE.md",
@@ -58,11 +71,24 @@
         "config.yaml"
       ]
     },
+    "music-bot": {
+      "path": "music-bot",
+      "purpose": null,
+      "fileCount": 16,
+      "lastAccessed": 1781065289827,
+      "keyFiles": [
+        "CLAUDE.md",
+        "Dockerfile",
+        "README.md",
+        "bot.py",
+        "config.yaml"
+      ]
+    },
     "vc-disconnect-bot": {
       "path": "vc-disconnect-bot",
       "purpose": null,
       "fileCount": 14,
-      "lastAccessed": 1779935448746,
+      "lastAccessed": 1781065289827,
       "keyFiles": [
         "AGENTS.md",
         "CLAUDE.md",
@@ -129,8 +155,8 @@
     },
     {
       "path": "vc-disconnect-bot/pyproject.toml",
-      "accessCount": 6,
-      "lastAccessed": 1779935668231,
+      "accessCount": 7,
+      "lastAccessed": 1780970286844,
       "type": "file"
     },
     {
