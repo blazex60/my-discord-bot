@@ -32,6 +32,12 @@ jobs:
     if: needs.changes.outputs.music-bot == 'true'
     runs-on: ubuntu-latest
     steps:
+      - name: Connect Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
       - name: Deploy music-bot
         uses: appleboy/ssh-action@v1
         with:
@@ -50,6 +56,12 @@ jobs:
     if: needs.changes.outputs.chat-summary-bot == 'true'
     runs-on: ubuntu-latest
     steps:
+      - name: Connect Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
       - name: Deploy chat-summary-bot
         uses: appleboy/ssh-action@v1
         with:
@@ -68,6 +80,12 @@ jobs:
     if: needs.changes.outputs.vc-disconnect-bot == 'true'
     runs-on: ubuntu-latest
     steps:
+      - name: Connect Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
       - name: Deploy vc-disconnect-bot
         uses: appleboy/ssh-action@v1
         with:
@@ -86,6 +104,12 @@ jobs:
     if: needs.changes.outputs.discord-minutes-bot == 'true'
     runs-on: ubuntu-latest
     steps:
+      - name: Connect Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
       - name: Deploy discord-minutes-bot
         uses: appleboy/ssh-action@v1
         with:
