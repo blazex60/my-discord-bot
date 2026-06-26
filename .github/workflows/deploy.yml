@@ -35,7 +35,9 @@ jobs:
       - name: Connect Tailscale
         uses: tailscale/github-action@v2
         with:
-          authkey: ${{ secrets.TS_AUTHKEY }}
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
       - name: Deploy music-bot
         uses: appleboy/ssh-action@v1
         with:
@@ -57,7 +59,9 @@ jobs:
       - name: Connect Tailscale
         uses: tailscale/github-action@v2
         with:
-          authkey: ${{ secrets.TS_AUTHKEY }}
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
       - name: Deploy chat-summary-bot
         uses: appleboy/ssh-action@v1
         with:
@@ -79,7 +83,9 @@ jobs:
       - name: Connect Tailscale
         uses: tailscale/github-action@v2
         with:
-          authkey: ${{ secrets.TS_AUTHKEY }}
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
       - name: Deploy vc-disconnect-bot
         uses: appleboy/ssh-action@v1
         with:
@@ -101,7 +107,9 @@ jobs:
       - name: Connect Tailscale
         uses: tailscale/github-action@v2
         with:
-          authkey: ${{ secrets.TS_AUTHKEY }}
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
       - name: Deploy discord-minutes-bot
         uses: appleboy/ssh-action@v1
         with:
