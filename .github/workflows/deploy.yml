@@ -3,6 +3,17 @@ name: Deploy to Production
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      bot:
+        description: 'デプロイするボットを選択'
+        required: true
+        type: choice
+        options:
+          - music-bot
+          - chat-summary-bot
+          - vc-disconnect-bot
+          - discord-minutes-bot
 
 jobs:
   changes:
@@ -29,7 +40,7 @@ jobs:
 
   deploy-music-bot:
     needs: changes
-    if: needs.changes.outputs.music-bot == 'true'
+    if: needs.changes.outputs.music-bot == 'true' || inputs.bot == 'music-bot'
     runs-on: ubuntu-latest
     steps:
       - name: Connect Tailscale
@@ -53,7 +64,7 @@ jobs:
 
   deploy-chat-summary-bot:
     needs: changes
-    if: needs.changes.outputs.chat-summary-bot == 'true'
+    if: needs.changes.outputs.chat-summary-bot == 'true' || inputs.bot == 'chat-summary-bot'
     runs-on: ubuntu-latest
     steps:
       - name: Connect Tailscale
@@ -77,7 +88,7 @@ jobs:
 
   deploy-vc-disconnect-bot:
     needs: changes
-    if: needs.changes.outputs.vc-disconnect-bot == 'true'
+    if: needs.changes.outputs.vc-disconnect-bot == 'true' || inputs.bot == 'vc-disconnect-bot'
     runs-on: ubuntu-latest
     steps:
       - name: Connect Tailscale
@@ -101,7 +112,7 @@ jobs:
 
   deploy-discord-minutes-bot:
     needs: changes
-    if: needs.changes.outputs.discord-minutes-bot == 'true'
+    if: needs.changes.outputs.discord-minutes-bot == 'true' || inputs.bot == 'discord-minutes-bot'
     runs-on: ubuntu-latest
     steps:
       - name: Connect Tailscale
