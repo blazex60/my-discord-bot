@@ -40,7 +40,7 @@ jobs:
 
   deploy-music-bot:
     needs: changes
-    if: needs.changes.outputs.music-bot == 'true' || inputs.bot == 'music-bot'
+    if: (github.event_name == 'push' && needs.changes.outputs.music-bot == 'true') || (github.event_name == 'workflow_dispatch' && inputs.bot == 'music-bot')
     runs-on: ubuntu-latest
     steps:
       - name: Connect Tailscale
@@ -64,7 +64,7 @@ jobs:
 
   deploy-chat-summary-bot:
     needs: changes
-    if: needs.changes.outputs.chat-summary-bot == 'true' || inputs.bot == 'chat-summary-bot'
+    if: (github.event_name == 'push' && needs.changes.outputs.chat-summary-bot == 'true') || (github.event_name == 'workflow_dispatch' && inputs.bot == 'chat-summary-bot')
     runs-on: ubuntu-latest
     steps:
       - name: Connect Tailscale
@@ -88,7 +88,7 @@ jobs:
 
   deploy-vc-disconnect-bot:
     needs: changes
-    if: needs.changes.outputs.vc-disconnect-bot == 'true' || inputs.bot == 'vc-disconnect-bot'
+    if: (github.event_name == 'push' && needs.changes.outputs.vc-disconnect-bot == 'true') || (github.event_name == 'workflow_dispatch' && inputs.bot == 'vc-disconnect-bot')
     runs-on: ubuntu-latest
     steps:
       - name: Connect Tailscale
@@ -112,7 +112,7 @@ jobs:
 
   deploy-discord-minutes-bot:
     needs: changes
-    if: needs.changes.outputs.discord-minutes-bot == 'true' || inputs.bot == 'discord-minutes-bot'
+    if: (github.event_name == 'push' && needs.changes.outputs.discord-minutes-bot == 'true') || (github.event_name == 'workflow_dispatch' && inputs.bot == 'discord-minutes-bot')
     runs-on: ubuntu-latest
     steps:
       - name: Connect Tailscale
