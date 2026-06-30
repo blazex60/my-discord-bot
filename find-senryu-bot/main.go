@@ -700,7 +700,7 @@ func handleRankCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
 func handleYomeYomuna(m *discordgo.MessageCreate, s *discordgo.Session) bool {
 	switch m.Content {
 	case "詠め":
-		senryus, err := service.GetThreeRandomSenryus(m.GuildID)
+		senryus, err := service.GetFiveRandomSenryus(m.GuildID)
 		if err != nil {
 			logger.Error("Failed to get random senryus", "error", err)
 			s.MessageReactionAdd(m.ChannelID, m.ID, "❌")
@@ -711,13 +711,15 @@ func handleYomeYomuna(m *discordgo.MessageCreate, s *discordgo.Session) bool {
 				logger.Warn("Failed to send message", "error", err, "channel_id", m.ChannelID)
 			}
 		} else {
-			if _, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("ここで一句\n「%s」\n詠み手: %s",
+			if _, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("ここで一首\n「%s」\n詠み手: %s",
 				strings.Join([]string{
 					senryus[0].Kamigo,
 					senryus[1].Nakasichi,
 					senryus[2].Simogo,
+					senryus[3].Nakasichi,
+					senryus[4].Nakasichi,
 				}, " "), strings.Join(getWriters(senryus, m.GuildID, s), ", "))); err != nil {
-				logger.Warn("Failed to send senryu message", "error", err, "channel_id", m.ChannelID)
+				logger.Warn("Failed to send tanka message", "error", err, "channel_id", m.ChannelID)
 			}
 		}
 		return true
