@@ -1,0 +1,38 @@
+name: Test find-senryu-bot
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'find-senryu-bot/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'find-senryu-bot/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: find-senryu-bot
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: find-senryu-bot/go.mod
+
+      - name: Install MeCab
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mecab libmecab-dev mecab-ipadic-utf8
+
+      - name: Build
+        run: |
+          go build -o /dev/null .
+          go build -o /dev/null ./cmd/migrate
+
+      - name: Run tests
+        run: go test -v -race ./...

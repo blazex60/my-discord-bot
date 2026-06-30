@@ -1,0 +1,49 @@
+services:
+  init:
+    image: busybox:latest
+    volumes:
+      - "./data:/app/data"
+    command: ["sh", "-c", "mkdir -p /app/data/backups && chown -R 65532:65532 /app/data"]
+
+  migrate:
+    build: .
+    entrypoint: ["/app/migrate"]
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    volumes:
+      - "./data:/app/data"
+      - type: bind
+        source: ./config.toml
+        target: /app/config.toml
+        read_only: true
+        bind:
+          create_host_path: false
+    environment:
+      TZ: Asia/Tokyo
+
+  app:
+    build: .
+    restart: always
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "9090:9090"
+    volumes:
+      - "./data:/app/data"
+      - type: bind
+        source: ./config.toml
+        target: /app/config.toml
+        read_only: true
+        bind:
+          create_host_path: false
+    environment:
+      TZ: Asia/Tokyo
+    stop_grace_period: 30s

@@ -14,6 +14,7 @@ on:
           - chat-summary-bot
           - vc-disconnect-bot
           - discord-minutes-bot
+          - find-senryu-bot
 
 jobs:
   changes:
@@ -23,6 +24,7 @@ jobs:
       chat-summary-bot: ${{ steps.filter.outputs.chat-summary-bot }}
       vc-disconnect-bot: ${{ steps.filter.outputs.vc-disconnect-bot }}
       discord-minutes-bot: ${{ steps.filter.outputs.discord-minutes-bot }}
+      find-senryu-bot: ${{ steps.filter.outputs.find-senryu-bot }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -37,6 +39,8 @@ jobs:
               - 'vc-disconnect-bot/**'
             discord-minutes-bot:
               - 'discord-minutes-bot/**'
+            find-senryu-bot:
+              - 'find-senryu-bot/**'
 
   deploy-music-bot:
     needs: changes
@@ -132,4 +136,28 @@ jobs:
             cd ~/my-discord-bot
             git pull origin main
             cd discord-minutes-bot
+            docker compose up --build -d
+
+  deploy-find-senryu-bot:
+    needs: changes
+    if: (github.event_name == 'push' && needs.changes.outputs.find-senryu-bot == 'true') || (github.event_name == 'workflow_dispatch' && inputs.bot == 'find-senryu-bot')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connect Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+      - name: Deploy find-senryu-bot
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd ~/my-discord-bot
+            git pull origin main
+            cd find-senryu-bot
             docker compose up --build -d
