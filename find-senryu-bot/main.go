@@ -624,19 +624,34 @@ func rankLabel(rank int) string {
 	return fmt.Sprintf("第%d位", rank)
 }
 
+func strPtr(s string) *string { return &s }
+
+func respondRankErrorEphemeral(s *discordgo.Session, i *discordgo.InteractionCreate, message string) {
+	if err := s.InteractionResponseDelete(i.Interaction); err != nil {
+		logger.Error("Failed to delete deferred rank interaction response", "error", err, "guild_id", i.GuildID)
+	}
+	if _, err := s.FollowupMessageCreate(i.Interaction, true, &discordgo.WebhookParams{
+		Content: message,
+		Flags:   discordgo.MessageFlagsEphemeral,
+	}); err != nil {
+		logger.Error("Failed to send rank error followup", "error", err, "guild_id", i.GuildID)
+	}
+}
+
 func handleRankCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	metrics.RecordCommandExecuted("rank")
+
+	if err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+	}); err != nil {
+		logger.Error("Failed to defer rank interaction response", "error", err, "guild_id", i.GuildID)
+		return
+	}
 
 	ranks, err := service.GetRanking(i.GuildID)
 	if err != nil {
 		logger.Error("Failed to get ranking", "error", err, "guild_id", i.GuildID)
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "ランキングの取得に失敗しました",
-				Flags:   discordgo.MessageFlagsEphemeral,
-			},
-		})
+		respondRankErrorEphemeral(s, i, "ランキングの取得に失敗しました")
 		return
 	}
 
@@ -689,12 +704,12 @@ func handleRankCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		})
 	}
 
-	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Embeds: []*discordgo.MessageEmbed{&embed},
-		},
-	})
+	embeds := []*discordgo.MessageEmbed{&embed}
+	if _, err := s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+		Embeds: &embeds,
+	}); err != nil {
+		logger.Error("Failed to edit rank interaction response", "error", err, "guild_id", i.GuildID)
+	}
 }
 
 func handleYomeYomuna(m *discordgo.MessageCreate, s *discordgo.Session) bool {
