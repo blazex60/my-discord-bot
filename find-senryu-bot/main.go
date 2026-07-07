@@ -626,6 +626,18 @@ func rankLabel(rank int) string {
 
 func strPtr(s string) *string { return &s }
 
+func respondRankErrorEphemeral(s *discordgo.Session, i *discordgo.InteractionCreate, message string) {
+	if err := s.InteractionResponseDelete(i.Interaction); err != nil {
+		logger.Error("Failed to delete deferred rank interaction response", "error", err, "guild_id", i.GuildID)
+	}
+	if _, err := s.FollowupMessageCreate(i.Interaction, true, &discordgo.WebhookParams{
+		Content: message,
+		Flags:   discordgo.MessageFlagsEphemeral,
+	}); err != nil {
+		logger.Error("Failed to send rank error followup", "error", err, "guild_id", i.GuildID)
+	}
+}
+
 func handleRankCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	metrics.RecordCommandExecuted("rank")
 
@@ -639,11 +651,7 @@ func handleRankCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	ranks, err := service.GetRanking(i.GuildID)
 	if err != nil {
 		logger.Error("Failed to get ranking", "error", err, "guild_id", i.GuildID)
-		if _, err := s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-			Content: strPtr("ランキングの取得に失敗しました"),
-		}); err != nil {
-			logger.Error("Failed to edit rank interaction response", "error", err, "guild_id", i.GuildID)
-		}
+		respondRankErrorEphemeral(s, i, "ランキングの取得に失敗しました")
 		return
 	}
 
