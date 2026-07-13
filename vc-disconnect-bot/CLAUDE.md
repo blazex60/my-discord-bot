@@ -47,6 +47,7 @@ docker compose up --build
 - **LLM 不使用** — 外部 AI API は一切使わない
 - **ZoneInfo を使う** — `pytz` や `dateutil` は使わない（stdlib の `zoneinfo` を使う）
 - **`move_members` 権限が必須** — `member.move_to(None)` に必要
+- **Server Members Intent が必須** — `VoiceChannel.members` は `guild.get_member()` でキャッシュ済みメンバーのみ返すため、これがオフだとコマンド実行者以外が認識されない
 
 ## シークレット管理
 

@@ -101,6 +101,10 @@ class GuildState:
 | `Send Messages` | 警告・通知メッセージ |
 | `Use Application Commands` | スラッシュコマンド |
 
+## 必要 Intent
+
+- **Server Members Intent（`intents.members`）が必須** — `VoiceChannel.members` は `guild.get_member()` でキャッシュ済みメンバーしか返さない（`discord/channel.py` の実装）。この intent がオフだと、コマンド実行者以外の未キャッシュメンバーが `channel.members` から欠落し、`/vc move-all` や `/vc kick` などで実行者以外が認識されない不具合になる。Developer Portal でも Privileged Gateway Intents から有効化すること
+
 ---
 
 ## For AI Agents

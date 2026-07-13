@@ -19,7 +19,11 @@ with open("config.yaml", encoding="utf-8") as f:
 
 _WARNING_SECONDS: int = _CONFIG["bot"]["default_warning_seconds"]
 
-bot = discord.Bot()
+intents = discord.Intents.default()
+# VoiceChannel.members は guild.get_member() でキャッシュ済みメンバーしか解決しないため、
+# members intent がないとコマンド実行者以外が channel.members に現れない
+intents.members = True
+bot = discord.Bot(intents=intents)
 vc_group = bot.create_group("vc", "VCタイマー・アラーム管理")
 
 
