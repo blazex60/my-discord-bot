@@ -427,17 +427,23 @@ async def cmd_vc_move_all(
     if not perms.move_members:
         await ctx.respond("❌ `メンバーを移動` 権限がありません", ephemeral=True)
         return
-    members = [m for m in src_channel.members if not m.bot]
-    if not members:
+    all_members = list(src_channel.members)
+    bot_members = [m for m in all_members if m.bot and m.id != ctx.guild.me.id]
+    human_members = [m for m in all_members if not m.bot]
+    if not human_members:
         await ctx.respond(
             f"❌ {src_channel.mention} に移動対象のメンバーがいません", ephemeral=True
         )
         return
     await ctx.respond(
-        f"📤 {src_channel.mention} の全員（{len(members)}人）を {channel.mention} へ移動します"
+        f"📤 {src_channel.mention} の全員（人間{len(human_members)}人 / Bot{len(bot_members)}体）"
+        f"を {channel.mention} へ移動します"
     )
     failed: list[str] = []
-    for member in members:
+    # 他Botを先に移動しておく。人間を先に動かすと、移動先未定のうちに元チャンネルの
+    # 人間が0人になり、他Bot側の「人間0人で自動切断」ロジックが新チャンネルへの
+    # 追従より先に発火して取り残されてしまう
+    for member in bot_members + human_members:
         try:
             await member.move_to(channel)
         except (discord.Forbidden, discord.HTTPException) as e:
