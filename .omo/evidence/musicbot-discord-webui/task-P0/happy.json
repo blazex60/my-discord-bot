@@ -1,0 +1,132 @@
+{
+  "task": "P0",
+  "case": "happy",
+  "resources": {
+    "port": 46101,
+    "database": "p0-memory-sqlite",
+    "browserProfile": "p0-ephemeral-chromium",
+    "composeProject": "p0-no-container"
+  },
+  "steps": [
+    {
+      "id": "sqlite-load",
+      "command": [
+        "node",
+        "-e",
+        "const Database=require('better-sqlite3'); const db=new Database(':memory:'); db.prepare('select 1 as ok').get(); db.close(); console.log('P0_SQLITE_OK')"
+      ],
+      "cwd": ".",
+      "exitStatus": 0,
+      "assertions": [
+        {
+          "kind": "outputIncludes",
+          "value": "P0_SQLITE_OK"
+        }
+      ],
+      "artifactPath": "../.omo/evidence/musicbot-discord-webui/task-P0/happy-sqlite-load.log",
+      "cleanup": {
+        "absentPaths": []
+      }
+    },
+    {
+      "id": "server-smoke",
+      "command": [
+        "node",
+        "--test",
+        "test/qa/server-smoke.test.mjs"
+      ],
+      "cwd": ".",
+      "exitStatus": 0,
+      "assertions": [
+        {
+          "kind": "outputIncludes",
+          "value": "P0 Fastify and Zod server harness"
+        }
+      ],
+      "artifactPath": "../.omo/evidence/musicbot-discord-webui/task-P0/happy-server-smoke.log",
+      "cleanup": {
+        "absentPaths": []
+      }
+    },
+    {
+      "id": "dom-smoke",
+      "command": [
+        "npm",
+        "run",
+        "test:web"
+      ],
+      "cwd": ".",
+      "exitStatus": 0,
+      "assertions": [
+        {
+          "kind": "outputIncludes",
+          "value": "P0 React DOM harness"
+        }
+      ],
+      "artifactPath": "../.omo/evidence/musicbot-discord-webui/task-P0/happy-dom-smoke.log",
+      "cleanup": {
+        "absentPaths": []
+      }
+    },
+    {
+      "id": "typecheck",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "cwd": ".",
+      "exitStatus": 0,
+      "assertions": [
+        {
+          "kind": "outputIncludes",
+          "value": "P0_TYPECHECK_OK"
+        }
+      ],
+      "artifactPath": "../.omo/evidence/musicbot-discord-webui/task-P0/happy-typecheck.log",
+      "cleanup": {
+        "absentPaths": []
+      }
+    },
+    {
+      "id": "vite-build",
+      "command": [
+        "npm",
+        "run",
+        "build:web"
+      ],
+      "cwd": ".",
+      "exitStatus": 0,
+      "assertions": [
+        {
+          "kind": "outputIncludes",
+          "value": "P0_VITE_BUILD_OK"
+        }
+      ],
+      "artifactPath": "../.omo/evidence/musicbot-discord-webui/task-P0/happy-vite-build.log",
+      "cleanup": {
+        "absentPaths": []
+      }
+    },
+    {
+      "id": "chromium-smoke",
+      "command": [
+        "npm",
+        "run",
+        "test:browser"
+      ],
+      "cwd": ".",
+      "exitStatus": 0,
+      "assertions": [
+        {
+          "kind": "outputIncludes",
+          "value": "P0_CHROMIUM_RUN_OK"
+        }
+      ],
+      "artifactPath": "../.omo/evidence/musicbot-discord-webui/task-P0/happy-chromium-smoke.log",
+      "cleanup": {
+        "absentPaths": []
+      }
+    }
+  ]
+}

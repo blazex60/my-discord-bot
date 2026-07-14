@@ -1,0 +1,51 @@
+{
+  "runtime": {
+    "node": "v26.4.0",
+    "npm": "12.0.1"
+  },
+  "declaredRuntimeDependencies": {
+    "fastify": "^5.6.2",
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/static": "^8.3.0",
+    "better-sqlite3": "^12.4.1",
+    "zod": "^4.1.12",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.9.5"
+  },
+  "declaredDevDependencies": {
+    "vite": "^6.4.1",
+    "vitest": "^3.2.4",
+    "typescript": "^5.9.3",
+    "@playwright/test": "^1.56.1",
+    "jsdom": "^26.1.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2"
+  },
+  "resolved": {
+    "fastify": "5.10.0",
+    "@fastify/cookie": "11.1.1",
+    "@fastify/static": "8.3.0",
+    "better-sqlite3": "12.11.1",
+    "zod": "4.4.3",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "react-router-dom": "7.18.1",
+    "vite": "6.4.3",
+    "vitest": "3.2.7",
+    "typescript": "5.9.3",
+    "@playwright/test": "1.61.1",
+    "jsdom": "26.1.0",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.1",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3"
+  },
+  "nativeInstallScriptsAllowed": [
+    "@discordjs/opus@0.10.0",
+    "better-sqlite3@12.11.1",
+    "esbuild@0.25.12"
+  ]
+}
