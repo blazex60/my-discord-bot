@@ -1,0 +1,8 @@
+npm notice run music-bot@1.0.0 test:browser
+npm notice run node scripts/run-browser-tests.mjs
+
+Running 1 test using 1 worker
+
+[1/1] test/browser/p0-smoke.spec.js:3:1 › P0 Chromium harness launches, asserts, and closes a real page
+  1 passed (743ms)
+P0_CHROMIUM_RUN_OK

@@ -1,0 +1,3 @@
+npm notice run music-bot@1.0.0 typecheck
+npm notice run tsc --noEmit -p web/tsconfig.json && node -e "console.log('P0_TYPECHECK_OK')"
+P0_TYPECHECK_OK
