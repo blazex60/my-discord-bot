@@ -83,6 +83,10 @@ var (
 			Description: "このチャンネルでBotが正常に動作するか診断します",
 		},
 		{
+			Name:        "help",
+			Description: "利用可能なコマンド一覧とヘルプを表示します",
+		},
+		{
 			Name:        "detect",
 			Description: "自分の川柳検出のオン/オフを切り替えます",
 			Options: []*discordgo.ApplicationCommandOption{
@@ -143,6 +147,7 @@ var (
 		"channel": commands.HandleChannelCommand,
 		"delete":  commands.HandleDeleteCommand,
 		"doctor":  commands.HandleDoctorCommand,
+		"help":    commands.HandleHelpCommand,
 		"detect":  commands.HandleDetectCommand,
 		"admin":   commands.HandleAdminCommand,
 		"contact": commands.HandleContactCommand,

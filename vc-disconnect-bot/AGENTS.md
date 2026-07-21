@@ -86,6 +86,7 @@ class GuildState:
 | `/vc kick-timer <minutes> <user>` | N 分後に指定ユーザー 1 人を切断 |
 | `/vc move <user> <channel>` | 指定ユーザーを別 VC チャンネルへ移動 |
 | `/vc move-all <channel>` | 現在 VC の全員を別 VC チャンネルへ移動（他Bot〈music-bot 等〉を優先的に先へ移動し、取り残しを防ぐ） |
+| `/help` | 利用可能なコマンド一覧を表示（ephemeral）。`config.yaml` の `bot.help_url` が設定されていれば詳細ドキュメントへのリンクも表示 |
 
 - `/vc timer` と `/vc alarm` は Bot 未参加の場合**自動参加**する
 - Bot が既に別 VC にいる場合、タイマーは動作するが対象 VC には参加しない（`voice_client=None`）
