@@ -18,6 +18,7 @@ with open("config.yaml", encoding="utf-8") as f:
     _CONFIG = yaml.safe_load(f)
 
 _WARNING_SECONDS: int = _CONFIG["bot"]["default_warning_seconds"]
+_HELP_URL: str = _CONFIG["bot"].get("help_url", "")
 
 intents = discord.Intents.default()
 # VoiceChannel.members は guild.get_member() でキャッシュ済みメンバーしか解決しないため、
@@ -455,6 +456,26 @@ async def cmd_vc_move_all(
             failed.append(member.display_name)
     if failed:
         await ctx.channel.send(f"⚠️ 移動できなかったメンバー: {', '.join(failed)}")
+
+
+@bot.slash_command(name="help", description="利用可能なコマンド一覧を表示します")
+async def cmd_help(ctx: discord.ApplicationContext) -> None:
+    lines = [
+        "**📖 VC切断BOT コマンド一覧**",
+        "",
+        "• `/vc join` — ボットを現在のVCに参加させます（タイマーなし）",
+        "• `/vc timer <minutes>` — N分後にVCの全員を切断します",
+        "• `/vc alarm <HH:MM>` — 指定時刻（JST）にVCの全員を切断します",
+        "• `/vc status` — 現在のVCのタイマー状態を表示します",
+        "• `/vc cancel` — タイマーをキャンセルしてVCから退出します",
+        "• `/vc kick <user> [user2] [user3]` — 指定ユーザーを即時切断します",
+        "• `/vc kick-timer <minutes> <user>` — N分後に指定ユーザーを切断します",
+        "• `/vc move <user> <channel>` — 指定ユーザーを別VCへ移動します",
+        "• `/vc move-all <channel>` — VCの全員を別VCへ移動します",
+    ]
+    if _HELP_URL:
+        lines += ["", f"詳しい使い方はこちら: {_HELP_URL}"]
+    await ctx.respond("\n".join(lines), ephemeral=True)
 
 
 @bot.event
