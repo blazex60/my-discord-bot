@@ -1,4 +1,4 @@
 bot:
   timezone: "Asia/Tokyo"
   default_warning_seconds: 60
-  help_url: "https://example.com/vc-disconnect-bot/help" # TODO: 実URLに差し替え
+  help_url: ""
